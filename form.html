@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>א.מ פיננסים — טופס פרטים אישיים</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;color:#1e293b;direction:rtl;min-height:100vh;}
+.header{background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px 20px;text-align:center;color:#fff;}
+.logo{width:56px;height:56px;background:rgba(255,255,255,0.2);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;margin:0 auto 14px;}
+.header h1{font-size:22px;font-weight:700;margin-bottom:6px;}
+.header p{font-size:13px;opacity:0.8;}
+.form-wrap{max-width:580px;margin:0 auto;padding:24px 16px 40px;}
+.card{background:#fff;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.section-title{font-size:14px;font-weight:700;color:#1e3a5f;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:12px;font-weight:600;color:#475569;}
+label span{color:#ef4444;}
+input,select,textarea{border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;width:100%;transition:border .15s;background:#f8fafc;}
+input:focus,select:focus,textarea:focus{border-color:#2563eb;background:#fff;}
+.checkbox-group{display:flex;flex-direction:column;gap:8px;}
+.checkbox-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:all .15s;}
+.checkbox-item:hover{border-color:#2563eb;background:#eff6ff;}
+.checkbox-item input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:#2563eb;}
+.checkbox-item label{font-size:13px;color:#1e293b;cursor:pointer;margin:0;}
+.privacy{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;font-size:12px;color:#1e40af;display:flex;gap:10px;align-items:flex-start;}
+.submit-btn{width:100%;padding:16px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:8px;}
+.submit-btn:hover{background:#1d4ed8;transform:translateY(-1px);}
+.submit-btn:disabled{background:#94a3b8;cursor:not-allowed;transform:none;}
+.success{display:none;text-align:center;padding:40px 20px;}
+.success-icon{font-size:64px;margin-bottom:16px;}
+.success h2{font-size:22px;font-weight:700;color:#15803d;margin-bottom:8px;}
+.success p{color:#475569;font-size:14px;}
+.required-note{font-size:11px;color:#94a3b8;margin-bottom:16px;}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">AM</div>
+  <h1>א.מ פיננסים</h1>
+  <p>טופס פרטים אישיים לייעוץ פנסיוני</p>
+</div>
+
+<div class="form-wrap">
+  <div id="form-content">
+    <p class="required-note">* שדות חובה</p>
+
+    <!-- פרטים אישיים -->
+    <div class="card">
+      <div class="section-title">👤 פרטים אישיים</div>
+      <div class="form-grid">
+        <div class="form-group"><label>שם פרטי <span>*</span></label><input id="firstName" placeholder="ישראל" required/></div>
+        <div class="form-group"><label>שם משפחה <span>*</span></label><input id="lastName" placeholder="ישראלי" required/></div>
+        <div class="form-group"><label>תעודת זהות <span>*</span></label><input id="idNum" placeholder="123456789" maxlength="9"/></div>
+        <div class="form-group"><label>תאריך לידה</label><input id="birth" type="date"/></div>
+        <div class="form-group"><label>טלפון נייד <span>*</span></label><input id="phone" placeholder="050-0000000" type="tel"/></div>
+        <div class="form-group"><label>כתובת מייל</label><input id="email" placeholder="mail@example.com" type="email"/></div>
+        <div class="form-group full"><label>כתובת מגורים</label><input id="address" placeholder="רחוב, עיר"/></div>
+        <div class="form-group"><label>מצב משפחתי</label>
+          <select id="marital"><option value="">בחר...</option><option>רווק/ה</option><option>נשוי/אה</option><option>גרוש/ה</option><option>אלמן/ה</option></select>
+        </div>
+        <div class="form-group"><label>מספר ילדים</label><input id="children" type="number" min="0" placeholder="0"/></div>
+      </div>
+    </div>
+
+    <!-- תעסוקה -->
+    <div class="card">
+      <div class="section-title">💼 פרטי תעסוקה</div>
+      <div class="form-grid">
+        <div class="form-group"><label>סוג עובד <span>*</span></label>
+          <select id="type"><option value="">בחר...</option><option>שכיר</option><option>עצמאי</option><option>פנסיונר</option><option>לא עובד</option></select>
+        </div>
+        <div class="form-group"><label>שם מעסיק / עסק</label><input id="employer" placeholder="שם החברה"/></div>
+        <div class="form-group"><label>שכר ברוטו חודשי (₪)</label><input id="salary" type="number" placeholder="15000"/></div>
+        <div class="form-group"><label>ותק בעבודה הנוכחית</label><input id="seniority" placeholder="3 שנים"/></div>
+      </div>
+    </div>
+
+    <!-- מוצרים קיימים -->
+    <div class="card">
+      <div class="section-title">📋 מוצרים פיננסיים קיימים</div>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">סמן את כל המוצרים שיש לך כרגע:</p>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="has-pension"><label for="has-pension">קרן פנסיה</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="has-gemel"><label for="has-gemel">קופת גמל</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="has-histash"><label for="has-histash">קרן השתלמות</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="has-life"><label for="has-life">ביטוח חיים</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="has-disability"><label for="has-disability">ביטוח אובדן כושר עבודה</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="has-managers"><label for="has-managers">ביטוח מנהלים</label></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>חברת ביטוח / פנסיה עיקרית</label>
+        <select id="mainCompany"><option value="">בחר...</option><option>הראל</option><option>מגדל</option><option>מנורה</option><option>פניקס</option><option>כלל</option><option>מיטב</option><option>אחר</option></select>
+      </div>
+    </div>
+
+    <!-- צרכים -->
+    <div class="card">
+      <div class="section-title">🎯 מה חשוב לך?</div>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">במה תרצה לקבל ייעוץ?</p>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="need-pension"><label for="need-pension">תכנון פנסיה ופרישה</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="need-save"><label for="need-save">חיסכון לטווח ארוך</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="need-ins"><label for="need-ins">ביטוחי חיים ובריאות</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="need-mgmt"><label for="need-mgmt">הפחתת דמי ניהול</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="need-review"><label for="need-review">סקירת תיק קיים</label></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>הערות נוספות</label>
+        <textarea id="notes" rows="3" placeholder="כל מידע נוסף שרוצה לשתף..."></textarea>
+      </div>
+    </div>
+
+    <!-- פרטיות -->
+    <div class="privacy">
+      <span style="font-size:18px">🔒</span>
+      <span>הפרטים שתמסור ישמשו לצורך ייעוץ פנסיוני בלבד ולא יועברו לגורם שלישי. הטופס מאובטח ומוצפן.</span>
+    </div>
+
+    <button class="submit-btn" onclick="submitForm()">שלח פרטים לסוכן ↗</button>
+  </div>
+
+  <div class="success" id="success-msg">
+    <div class="success-icon">✅</div>
+    <h2>הפרטים התקבלו!</h2>
+    <p>תודה רבה! הסוכן שלך יצור איתך קשר בהקדם לתיאום פגישה.</p>
+    <p style="margin-top:12px;font-weight:600;color:#1e3a5f">א.מ פיננסים · 050-0000000</p>
+  </div>
+</div>
+
+<script>
+function submitForm() {
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const idNum = document.getElementById('idNum').value.trim();
+
+  if (!firstName || !lastName || !phone) {
+    alert('נא למלא שם מלא וטלפון');
+    return;
+  }
+
+  const products = [];
+  ['pension','gemel','histash','life','disability','managers'].forEach(p => {
+    if (document.getElementById('has-'+p).checked) products.push(p);
+  });
+
+  const needs = [];
+  ['pension','save','ins','mgmt','review'].forEach(n => {
+    if (document.getElementById('need-'+n).checked) needs.push(n);
+  });
+
+  const client = {
+    id: Date.now(),
+    name: firstName + ' ' + lastName,
+    idNum: document.getElementById('idNum').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    birth: document.getElementById('birth').value,
+    marital: document.getElementById('marital').value,
+    children: document.getElementById('children').value,
+    type: document.getElementById('type').value,
+    employer: document.getElementById('employer').value.trim(),
+    salary: document.getElementById('salary').value,
+    seniority: document.getElementById('seniority').value.trim(),
+    mainCompany: document.getElementById('mainCompany').value,
+    products: products,
+    needs: needs,
+    notes: document.getElementById('notes').value.trim(),
+    status: 'פעיל',
+    source: 'טופס לקוח',
+    fromForm: true,
+    submittedAt: new Date().toLocaleDateString('he-IL'),
+  };
+
+  // Save to localStorage (same origin as CRM)
+  const existing = JSON.parse(localStorage.getItem('crm_clients') || '[]');
+  existing.push(client);
+  localStorage.setItem('crm_clients', JSON.stringify(existing));
+
+  // Also save pending for notification
+  const pending = JSON.parse(localStorage.getItem('crm_pending') || '[]');
+  pending.push(client);
+  localStorage.setItem('crm_pending', JSON.stringify(pending));
+
+  document.getElementById('form-content').style.display = 'none';
+  document.getElementById('success-msg').style.display = 'block';
+}
+</script>
+</body>
+</html>
