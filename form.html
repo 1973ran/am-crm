@@ -125,9 +125,11 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;background:#fff;}
 
   <div class="success" id="success-msg">
     <div class="success-icon">✅</div>
-    <h2>הפרטים התקבלו!</h2>
-    <p>תודה רבה! הסוכן שלך יצור איתך קשר בהקדם לתיאום פגישה.</p>
-    <p style="margin-top:12px;font-weight:600;color:#1e3a5f">א.מ פיננסים · 050-0000000</p>
+    <h2>תודה! הפרטים נשלחים לסוכן</h2>
+    <p>נפתח וואטסאפ עם הפרטים שלך — לחץ <strong>שלח</strong> כדי להעביר לרן.</p>
+    <p style="margin-top:16px;font-size:13px;color:#64748b">לא נפתח? לחץ כאן:</p>
+    <button onclick="resendWA()" style="margin-top:8px;padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">💬 שלח בוואטסאפ</button>
+    <p style="margin-top:20px;font-weight:600;color:#1e3a5f">א.מ פיננסים · רן מסיקה</p>
   </div>
 </div>
 
@@ -136,59 +138,93 @@ function submitForm() {
   const firstName = document.getElementById('firstName').value.trim();
   const lastName = document.getElementById('lastName').value.trim();
   const phone = document.getElementById('phone').value.trim();
-  const idNum = document.getElementById('idNum').value.trim();
 
   if (!firstName || !lastName || !phone) {
     alert('נא למלא שם מלא וטלפון');
     return;
   }
 
+  const productNames = {
+    pension:'קרן פנסיה', gemel:'קופת גמל', histash:'קרן השתלמות',
+    life:'ביטוח חיים', disability:'אובדן כושר', managers:'ביטוח מנהלים'
+  };
+  const needNames = {
+    pension:'תכנון פנסיה', save:'חיסכון', ins:'ביטוחים', mgmt:'הפחתת דמי ניהול', review:'סקירת תיק'
+  };
+
   const products = [];
-  ['pension','gemel','histash','life','disability','managers'].forEach(p => {
-    if (document.getElementById('has-'+p).checked) products.push(p);
+  Object.keys(productNames).forEach(p => {
+    if (document.getElementById('has-'+p).checked) products.push(productNames[p]);
   });
 
   const needs = [];
-  ['pension','save','ins','mgmt','review'].forEach(n => {
-    if (document.getElementById('need-'+n).checked) needs.push(n);
+  Object.keys(needNames).forEach(n => {
+    if (document.getElementById('need-'+n).checked) needs.push(needNames[n]);
   });
 
-  const client = {
-    id: Date.now(),
-    name: firstName + ' ' + lastName,
-    idNum: document.getElementById('idNum').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    address: document.getElementById('address').value.trim(),
-    birth: document.getElementById('birth').value,
-    marital: document.getElementById('marital').value,
-    children: document.getElementById('children').value,
-    type: document.getElementById('type').value,
-    employer: document.getElementById('employer').value.trim(),
-    salary: document.getElementById('salary').value,
-    seniority: document.getElementById('seniority').value.trim(),
-    mainCompany: document.getElementById('mainCompany').value,
-    products: products,
-    needs: needs,
-    notes: document.getElementById('notes').value.trim(),
-    status: 'פעיל',
-    source: 'טופס לקוח',
-    fromForm: true,
-    submittedAt: new Date().toLocaleDateString('he-IL'),
-  };
+  const birth = document.getElementById('birth').value;
+  const salary = document.getElementById('salary').value;
+  const employer = document.getElementById('employer').value.trim();
+  const marital = document.getElementById('marital').value;
+  const email = document.getElementById('email').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const type = document.getElementById('type').value;
+  const mainCompany = document.getElementById('mainCompany').value;
+  const notes = document.getElementById('notes').value.trim();
 
-  // Save to localStorage (same origin as CRM)
-  const existing = JSON.parse(localStorage.getItem('crm_clients') || '[]');
-  existing.push(client);
-  localStorage.setItem('crm_clients', JSON.stringify(existing));
+  // Build WhatsApp message
+  let msg = `✅ *טופס לקוח חדש — א.מ פיננסים*
 
-  // Also save pending for notification
-  const pending = JSON.parse(localStorage.getItem('crm_pending') || '[]');
-  pending.push(client);
-  localStorage.setItem('crm_pending', JSON.stringify(pending));
+`;
+  msg += `👤 *שם:* ${firstName} ${lastName}
+`;
+  msg += `📱 *טלפון:* ${phone}
+`;
+  if (email) msg += `📧 *מייל:* ${email}
+`;
+  if (birth) msg += `🎂 *תאריך לידה:* ${birth}
+`;
+  if (address) msg += `🏠 *כתובת:* ${address}
+`;
+  if (marital) msg += `💍 *מצב משפחתי:* ${marital}
+`;
+  msg += `
+💼 *סוג עובד:* ${type || 'לא צוין'}
+`;
+  if (employer) msg += `🏢 *מעסיק:* ${employer}
+`;
+  if (salary) msg += `💰 *שכר ברוטו:* ₪${Number(salary).toLocaleString()}
+`;
+  if (mainCompany) msg += `🏛️ *חברת ביטוח עיקרית:* ${mainCompany}
+`;
+  if (products.length) msg += `
+📋 *מוצרים קיימים:* ${products.join(', ')}
+`;
+  if (needs.length) msg += `🎯 *צרכים:* ${needs.join(', ')}
+`;
+  if (notes) msg += `
+📝 *הערות:* ${notes}
+`;
+  msg += `
+⏰ *נשלח:* ${new Date().toLocaleString('he-IL')}`;
 
+  // YOUR WhatsApp number - replace with yours
+  const yourPhone = 972525949449'; // ← שנה למספר שלך!
+  
+  const waUrl = `https://wa.me/${yourPhone}?text=${encodeURIComponent(msg)}`;
+  
   document.getElementById('form-content').style.display = 'none';
   document.getElementById('success-msg').style.display = 'block';
+  
+  // Open WhatsApp
+  setTimeout(() => {
+    window._lastWaUrl = waUrl;
+    window.open(waUrl, '_blank');
+  }, 500);
+}
+function resendWA() {
+  // This will be populated by the last submission
+  if (window._lastWaUrl) window.open(window._lastWaUrl, '_blank');
 }
 </script>
 </body>
