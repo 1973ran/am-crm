@@ -125,10 +125,10 @@ input:focus,select:focus,textarea:focus{border-color:#2563eb;background:#fff;}
 
   <div class="success" id="success-msg">
     <div class="success-icon">✅</div>
-    <h2>תודה! הפרטים נשלחים לסוכן</h2>
-    <p>נפתח וואטסאפ עם הפרטים שלך — לחץ <strong>שלח</strong> כדי להעביר לרן.</p>
-    <p style="margin-top:16px;font-size:13px;color:#64748b">לא נפתח? לחץ כאן:</p>
-    <button onclick="resendWA()" style="margin-top:8px;padding:12px 24px;background:#25D366;color:#fff;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600">💬 שלח בוואטסאפ</button>
+    <h2>הפרטים מוכנים!</h2>
+    <p style="margin-bottom:20px;">לחץ על הכפתור הירוק כדי לשלוח את הפרטים לרן בוואטסאפ:</p>
+    <a id="wa-btn" href="#" target="_blank" style="display:inline-block;padding:16px 32px;background:#25D366;color:#fff;border-radius:14px;font-size:18px;font-weight:700;text-decoration:none;margin-bottom:16px">💬 שלח בוואטסאפ לרן</a>
+    <p style="font-size:12px;color:#94a3b8;margin-top:8px">לאחר הלחיצה — תיפתח שיחת וואטסאפ עם כל הפרטים מוכנים לשליחה</p>
     <p style="margin-top:20px;font-weight:600;color:#1e3a5f">א.מ פיננסים · רן מסיקה</p>
   </div>
 </div>
@@ -209,23 +209,23 @@ function submitForm() {
 ⏰ *נשלח:* ${new Date().toLocaleString('he-IL')}`;
 
   // YOUR WhatsApp number - replace with yours
-  const yourPhone = 972525949449'; // ← שנה למספר שלך!
+  const yourPhone = '972501234567'; // ← שנה למספר שלך!
   
   const waUrl = `https://wa.me/${yourPhone}?text=${encodeURIComponent(msg)}`;
   
+  window._lastWaUrl = waUrl;
   document.getElementById('form-content').style.display = 'none';
   document.getElementById('success-msg').style.display = 'block';
-  
-  // Open WhatsApp
   setTimeout(() => {
-    window._lastWaUrl = waUrl;
-    window.open(waUrl, '_blank');
-  }, 500);
+    const btn = document.getElementById('wa-btn');
+    if (btn) btn.href = waUrl;
+  }, 100);
 }
 function resendWA() {
-  // This will be populated by the last submission
   if (window._lastWaUrl) window.open(window._lastWaUrl, '_blank');
 }
+// Set WA button href after form submit
+const origSubmit = submitForm;
 </script>
 </body>
 </html>
