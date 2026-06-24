@@ -46,6 +46,16 @@ const FLOW = [
   },
 ];
 
+// ── Bot enable/disable toggle ─────────────────────────────────────────────────
+
+let botEnabled = true;
+
+const ADMIN_COMMANDS = {
+  '!bot off':    () => { botEnabled = false; return '🔴 הבוט *כובה*. לקוחות לא יקבלו מענה אוטומטי.'; },
+  '!bot on':     () => { botEnabled = true;  return '🟢 הבוט *הופעל*. חוזר לענות ללקוחות.'; },
+  '!bot status': () => `ℹ️ הבוט כרגע *${botEnabled ? 'פעיל 🟢' : 'כבוי 🔴'}*.\n\nפקודות:\n• \`!bot off\` — השבת\n• \`!bot on\` — הפעל`,
+};
+
 // ── State per chat ────────────────────────────────────────────────────────────
 
 const chatState = new Map(); // chatId → { step, data }
@@ -147,13 +157,32 @@ client.on('message', async msg => {
   const text = msg.body.trim();
   const phone = chatId.replace('@c.us', '');
 
-  // Don't process our own messages sent to clients
-  if (msg.fromMe) return;
+  // Handle advisor control commands (sent from advisor's own device)
+  if (msg.fromMe) {
+    const cmd = text.toLowerCase();
+    const handler = ADMIN_COMMANDS[cmd];
+    if (handler) {
+      const reply = handler();
+      console.log(`[admin] ${cmd} → ${botEnabled ? 'on' : 'off'}`);
+      await client.sendMessage(chatId, reply);
+    }
+    return;
+  }
 
-  // Allow advisor to reset a conversation: send "!reset" to that contact
-  // (or the bot resets itself after completion)
+  // When bot is disabled, send a brief holding message only on first contact
+  if (!botEnabled) {
+    const state = getState(chatId);
+    if (state.step === 0) {
+      await msg.reply(`שלום! 🙏\n${ADVISOR_NAME} יחזור אליך בהקדם.\n\n_א.מ פיננסים_`);
+      state.step = -1; // mark as "holding message sent"
+    }
+    return;
+  }
 
   const state = getState(chatId);
+
+  // Resume clients who were put on hold while bot was disabled
+  if (state.step === -1) resetState(chatId);
 
   // Restart trigger
   if (/^(שלום|היי|hello|hi|בוקר|ערב|צהריים|start|התחל)/i.test(text) && state.step === 0) {
