@@ -2,6 +2,7 @@ require('dotenv').config();
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
 const pino = require('pino');
+const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 
@@ -129,13 +130,16 @@ async function startBot() {
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: true,
     logger: pino({ level: 'silent' }),
   });
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+  sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+    if (qr) {
+      console.log('\n📱 סרוק את ה-QR code בוואטסאפ (הגדרות ← מכשירים מקושרים):\n');
+      qrcode.generate(qr, { small: true });
+    }
     if (connection === 'close') {
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
       if (code === DisconnectReason.loggedOut) {
