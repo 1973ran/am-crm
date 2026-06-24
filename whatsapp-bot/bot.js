@@ -90,7 +90,7 @@ async function handleMessage(sock, jid, text, fromMe) {
   const s = getState(jid);
 
   if (s.step === 0) {
-    await send(`שלום! אני העוזרת של ${ADVISOR_NAME} 😊\nבמה אפשר לעזור?`);
+    await send(`שלום! אני מנהלת היומן של ${ADVISOR_NAME} 😊\nבמה אפשר לעזור?`);
     s.step = 1;
     return;
   }
