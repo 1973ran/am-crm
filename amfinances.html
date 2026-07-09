@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>א.מ פיננסים — CRM</title>
+<title>רן פיננסים — CRM v17</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--dark:#0f1117;--dark2:#161b27;--dark3:#1e2536;--dark4:#252d3d;--acc:#2563eb;--grn:#10b981;--red:#ef4444;--yel:#f59e0b;--txt:#e2e8f0;--txt2:#94a3b8;--txt3:#64748b;--brd:rgba(255,255,255,0.08);--brd2:rgba(255,255,255,0.14);}
@@ -141,7 +141,7 @@ select.form-input{cursor:pointer;}
 <div class="sidebar">
   <div class="logo">
     <div class="logo-ic">AM</div>
-    <div><div class="logo-t">א.מ פיננסים</div><div class="logo-s">CRM פנסיוני</div></div>
+    <div><div class="logo-t">רן פיננסים</div><div class="logo-s">CRM פנסיוני · v17</div></div>
   </div>
   <div class="nav">
     <div class="nl">ראשי</div>
@@ -158,19 +158,85 @@ select.form-input{cursor:pointer;}
 <!-- MAIN -->
 <div class="main">
   <div class="hdr">
-    <div><div class="ht" id="hdr-title">דשבורד</div><div class="hs" id="hdr-sub">א.מ פיננסים · מאי 2026</div></div>
+    <div><div class="ht" id="hdr-title">דשבורד</div><div class="hs" id="hdr-sub">רן פיננסים · מאי 2026</div></div>
     <div class="ha" id="hdr-actions"></div>
   </div>
   <div class="content">
 
     <!-- DASHBOARD -->
     <div class="panel active" id="p-dashboard">
+      <div class="card" id="storage-card" style="margin-bottom:14px">
+        <div class="ch">
+          <span class="ct">💾 מקור נתונים</span>
+          <span class="hs" id="storage-status" style="margin-right:auto">מקומי — דפדפן זה בלבד</span>
+        </div>
+        <div style="padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-p" onclick="connectDataFile()">🔗 חבר קובץ מסונכרן</button>
+          <button class="btn" onclick="openFbModal()">☁️ סנכרון ענן (מובייל)</button>
+          <button class="btn" onclick="loadFromFile()">📂 טען מהקובץ</button>
+          <button class="btn btn-g" onclick="backupJSON()">📦 גיבוי JSON</button>
+          <button class="btn" onclick="document.getElementById('restore-file').click()">↩️ שחזור</button>
+          <input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreJSON(this)"/>
+          <span style="font-size:11px;color:var(--txt3)">חבר את הקובץ לתיקיית OneDrive/Drive — וכל המכשירים יקראו מאותו מקור</span>
+        </div>
+        <div style="padding:0 18px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:0.5px solid var(--brd);padding-top:10px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);cursor:pointer">
+            <input type="checkbox" id="autobackup-toggle" onchange="toggleAutoBackup(this.checked)" style="width:16px;height:16px;cursor:pointer">
+            גיבוי קובץ יומי אוטומטי
+          </label>
+          <span class="hs" id="backup-status" style="font-size:11px"></span>
+          <select id="snapshot-select" class="form-input" style="width:auto;padding:3px 8px;font-size:12px;margin-right:auto" onchange="if(this.value)restoreSnapshot(this.value)">
+            <option value="">↺ נקודות שחזור…</option>
+          </select>
+        </div>
+      </div>
       <div class="kpi-grid">
         <div class="kpi"><div class="kl">לקוחות פעילים</div><div class="kv" id="kpi-clients">0</div><div class="kd up">סה"כ במערכת</div></div>
         <div class="kpi"><div class="kl">משימות פתוחות</div><div class="kv" id="kpi-tasks">0</div><div class="kd dn">דורשות טיפול</div></div>
         <div class="kpi"><div class="kl">התראות פעילות</div><div class="kv" id="kpi-alerts">0</div><div class="kd dn">לבדיקה</div></div>
         <div class="kpi"><div class="kl">פגישות השבוע</div><div class="kv" id="kpi-meetings">0</div><div class="kd up">מתוכננות</div></div>
       </div>
+
+      <div class="card" id="pipeline-card">
+        <div class="ch"><span class="ct">📊 צינור מכירה</span><span class="hs" id="pipeline-aum" style="margin-right:auto"></span></div>
+        <div style="padding:14px 18px" id="pipeline-body"></div>
+      </div>
+
+      <div class="card" id="treatments-card">
+        <div class="ch"><span class="ct">🗂️ טיפולים פתוחים</span><span class="nb" id="treat-count" style="margin-right:8px">0</span><span class="hs" id="treat-bytype" style="margin-right:auto"></span></div>
+        <div id="treat-body"></div>
+      </div>
+
+      <div class="card" id="cold-card">
+        <div class="ch">
+          <span class="ct">🔥 מי מתקרר — לטיפול היום</span>
+          <span class="nb" id="cold-count" style="margin-right:8px">0</span>
+          <div class="ca">
+            <label style="font-size:11px;color:var(--txt3)">סף ימים:</label>
+            <select class="form-input" id="cold-threshold" style="padding:3px 8px;font-size:12px;width:auto" onchange="renderColdList()">
+              <option value="7">7</option><option value="14" selected>14</option><option value="30">30</option><option value="60">60</option>
+            </select>
+          </div>
+        </div>
+        <div id="cold-body"></div>
+      </div>
+
+      <div class="card" id="newclients-card">
+        <div class="ch"><span class="ct">🆕 לקוחות חדשים</span><span class="nb" id="new-count" style="margin-right:8px">0</span><span class="hs" style="margin-right:auto">45 הימים האחרונים</span></div>
+        <div id="new-body"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card">
+          <div class="ch"><span class="ct">🎂 ימי הולדת החודש</span><span class="nb" id="bday-count" style="margin-right:8px">0</span></div>
+          <div id="bday-body"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">🔄 חידושים קרובים</span><span class="nb" id="renew-count" style="margin-right:8px">0</span></div>
+          <div id="renew-body"></div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div class="card">
           <div class="ch"><span class="ct">לקוחות אחרונים</span></div>
@@ -189,7 +255,16 @@ select.form-input{cursor:pointer;}
       <div class="card">
         <div class="ch">
           <span class="ct">לקוחות (<span id="client-count-label">0</span>)</span>
-          <div class="ca"></div>
+          <div class="ca">
+            <button class="btn btn-p" onclick="document.getElementById('masleka-file').click()">🏛️ ייבוא מסלקה</button>
+            <button class="btn" onclick="openQuickImport()">⚡ ייבוא מהיר</button>
+            <button class="btn btn-g" onclick="exportExcel()">📤 ייצוא Excel</button>
+            <button class="btn" onclick="document.getElementById('import-file').click()">📥 ייבוא CSV</button>
+            <button class="btn btn-r" onclick="removeDuplicates()">🧹 הסר כפולים</button>
+            <button class="btn" onclick="openMergeTool()">🔗 איחוד חכם</button>
+            <input type="file" id="import-file" accept=".csv" style="display:none" onchange="importCSV(this)"/>
+            <input type="file" id="masleka-file" accept=".xml,.zip" multiple style="display:none" onchange="importMasleka(this)"/>
+          </div>
         </div>
         <div id="clients-table"></div>
       </div>
@@ -275,8 +350,22 @@ select.form-input{cursor:pointer;}
     <!-- MEETINGS -->
     <div class="panel" id="p-meetings">
       <div class="card">
-        <div class="ch"><span class="ct">פגישות קרובות</span><div class="ca"><button class="btn btn-p" onclick="openMeetingModal()">+ פגישה חדשה</button></div></div>
-        <div id="meetings-list"></div>
+        <div class="ch" style="flex-wrap:wrap;gap:8px">
+          <div class="ca">
+            <button class="btn" onclick="calNav(-1)" style="padding:6px 11px">‹</button>
+            <button class="btn" onclick="calToday()">היום</button>
+            <button class="btn" onclick="calNav(1)" style="padding:6px 11px">›</button>
+            <span class="ct" id="cal-label" style="margin-right:8px"></span>
+          </div>
+          <div class="ca" style="margin-right:auto">
+            <button class="btn" id="cal-week-btn" onclick="setCalView('week')">שבוע</button>
+            <button class="btn" id="cal-month-btn" onclick="setCalView('month')">חודש</button>
+            <button class="btn" id="cal-list-btn" onclick="setCalView('list')">רשימה</button>
+            <button class="btn btn-p" onclick="openMeetingModal()">+ פגישה</button>
+          </div>
+        </div>
+        <div id="calendar-view"></div>
+        <div id="meetings-list" style="display:none"></div>
       </div>
     </div>
 
@@ -309,6 +398,14 @@ select.form-input{cursor:pointer;}
       <div class="form-group"><label class="form-label">תאריך לידה</label><input class="form-input" id="f-birth" type="date"/></div>
       <div class="form-group full"><label class="form-label">הערות</label><textarea class="form-input" id="f-notes" rows="3" placeholder="הערות נוספות..."></textarea></div>
     </div>
+
+    <!-- PRODUCTS SECTION -->
+    <div style="margin-top:18px;padding-top:16px;border-top:0.5px solid var(--brd)">
+      <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:14px">📋 מוצרים פיננסיים</div>
+      <div id="products-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      <button class="btn" style="margin-top:10px;width:100%" onclick="addProduct()">+ הוסף מוצר</button>
+    </div>
+
     <div class="form-actions">
       <button class="btn" onclick="closeModal('client-modal')">ביטול</button>
       <button class="btn btn-p" onclick="saveClient()">שמור לקוח</button>
@@ -366,8 +463,16 @@ select.form-input{cursor:pointer;}
 </div>
 
 <script>
+window.SEED_CLIENTS = [{"name":"אילן ויצמן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד | השתלמות: שוגר טפסים 21/04 | ריסק: חתם על מינוי סוכן | ריסק: חתם על מינוי סוכן","idNum":"","birth":"","products":[]},{"name":"אושר אוחנה","phone":"","email":"osher1125@gmail.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד | השתלמות: להעביר למור | בריאות: החזר כסף שלחתי לבדיקה של כמה חודשים בכלל | ריסק: ממתין לפוליסה | ריסק: ממתין לפוליסה","idNum":"","birth":"","products":[]},{"name":"רן מסיכה","phone":"0525949449","email":"","type":"שכיר","status":"פעיל","pension":"מגדל","premium":"5000","salary":"250000","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"נחמה אוזנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: צריך להעביר למגדל","idNum":"","birth":"","products":[]},{"name":"שלומי אוזנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: חזר למנורה","idNum":"","birth":"","products":[]},{"name":"אמיר סגוקאר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"אליאור נהרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: , ממתין להפקדה ראשונה | השתלמות: ממתין להפקדה | ריסק: לכל המשפחה מינוי סוכן כלל | ריסק: לכל המשפחה מינוי סוכן כלל","idNum":"","birth":"","products":[]},{"name":"עמית ארוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש פנסיה אישית , הפקדות וניוד | ריסק: צריך השלמות חוסרים 28/4 | ריסק: צריך השלמות חוסרים 28/4","idNum":"","birth":"","products":[]},{"name":"נתנאל דהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש פנסיה אישית , הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"יפית מימון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה קרן מקפת אישית ללא הפקדות, ממתין להפקדה ראשונה מחודש פברואר","idNum":"","birth":"","products":[]},{"name":"אלי מכלוף","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: ניוד 25-6","idNum":"","birth":"","products":[]},{"name":"אלירן פרץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"שמיים שריקי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: ממתין להפקדה ראשונה","idNum":"","birth":"","products":[]},{"name":"נבו בן שטרית","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן ליברפרינד","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"אשר אלמלך","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: אין מספר תז","idNum":"","birth":"","products":[]},{"name":"נבו אדרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"קובי ביטון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: העבר נספח ו״ חודש אפריל","idNum":"","birth":"","products":[]},{"name":"ירון שוורץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש משלימה עם ניוד של 408 שח ואישית ללא הפקדות. לא רואה בקשות ניוד נוספות","idNum":"","birth":"","products":[]},{"name":"ניסים טבקה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"עומרי נעים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית ומשלימה ללא הפקדות, ממתין להפקדה והניוד למשלימה","idNum":"","birth":"","products":[]},{"name":"אוסקר יגאל","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: אין פנסיה","idNum":"","birth":"","products":[]},{"name":"נגב דוידין","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש צפי לניוד לאישית 11.6","idNum":"","birth":"","products":[]},{"name":"פאבלו ברדס","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית ומשלימה ללא הפקדות, ממתין להפקדה והניוד למשלימה נדחה, הוא פג תוקף | השתלמות: בדיקה אם הכסף נויד","idNum":"","birth":"","products":[]},{"name":"תומר פיטוסי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: צריך נספח ו״","idNum":"","birth":"","products":[]},{"name":"יעלה תמרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ברק שמשי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית, יש הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"גל לוי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית, יש הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"שקד טסמה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ערן בוחבוט","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: שוגר טפסים 21-06 | ריסק: חתם על מינוי סוכן | ריסק: חתם על מינוי סוכן","idNum":"","birth":"","products":[]},{"name":"אבירם זרביב","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רעות בן שטרית","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אלישע בר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: טפסים שוגרו 26/06/25","idNum":"","birth":"","products":[]},{"name":"ליאור דדון","phone":"509348128","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: הפקדה של 3000 לחודש | בריאות: שלחתי ביטול ביטוח משכנתא ולבטל את הביטוח של אובדן כשר עבודה | ריסק: צריך להחתים למינוי סוכן | ריסק: צריך להחתים למינוי סוכן","idNum":"","birth":"","products":[]},{"name":"נדב זהמן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אביתר אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"יוסי כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ליזו כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"יעקב בן הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"חן בן הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אבירן כרמל","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אלי צדיקריו","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"פנינה צדיקריו","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן בן עמי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נאור בוחבוט","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נועם ממן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"עמית הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן עינבר ליברפרינד","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"דודו אמיר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"מיה כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"חנניה דרעי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איתי בנישתי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איציק מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"טבקה ניסים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"זיו מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"הדס אמיר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אופיר דרעי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אורטל אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איתי אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אימרי אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רעות בר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסתי פריים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אופק עמוס","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"מלי מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נגב דוידיאן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"לירן פרץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"שמיים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסתר אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רון אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: ממתין לפוליסה | ריסק: ממתין לפוליסה","idNum":"","birth":"","products":[]},{"name":"לאלישיב חיון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: מינוי סוכן בכלל | ריסק: מינוי סוכן בכלל","idNum":"","birth":"","products":[]},{"name":"שליו אוסקר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: צירך הר הביטוח | ריסק: צירך הר הביטוח","idNum":"","birth":"","products":[]},{"name":"רועי בנימין","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: ביטוח ריסק 1.5 m | ריסק: ביטוח ריסק 1.5 m","idNum":"","birth":"","products":[]},{"name":"אדיר שינקולקר","phone":"0504231565","email":"adir.shinkolker@icl-group.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"20000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסף  אטיאס","phone":"0508870229","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"19000","source":"ים המלח","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אדיר שינקולקר","phone":"504231565","email":"adir.shinkolker@icl-group.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"20000","source":"ייבוא Excel","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"טל מזגאוקר","phone":"0545469565","email":"roymaz4@gmail.com","type":"שכיר","status":"פעיל","pension":"גדל","premium":"2288","salary":"11000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"דוד ניצן","phone":"0527929470","email":"","type":"שכיר","status":"פעיל","pension":"כלל","premium":"4116","salary":"25000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]}];
+</script>
+<script>
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let clients = JSON.parse(localStorage.getItem('crm_clients') || '[]');
+if (!clients.length && window.SEED_CLIENTS && window.SEED_CLIENTS.length) {
+  const _now = Date.now();
+  clients = window.SEED_CLIENTS.map((c, i) => ({ ...c, id: _now + i, createdAt: new Date().toISOString() }));
+  localStorage.setItem('crm_clients', JSON.stringify(clients));
+}
 let tasks = JSON.parse(localStorage.getItem('crm_tasks') || '[]');
 let meetings = JSON.parse(localStorage.getItem('crm_meetings') || '[]');
 let editingClientId = null;
@@ -377,6 +482,8 @@ function save() {
   localStorage.setItem('crm_clients', JSON.stringify(clients));
   localStorage.setItem('crm_tasks', JSON.stringify(tasks));
   localStorage.setItem('crm_meetings', JSON.stringify(meetings));
+  if (typeof autoSnapshot === 'function') autoSnapshot();
+  if (typeof maybeAutoBackup === 'function') maybeAutoBackup();
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
@@ -398,7 +505,7 @@ function nav(id) {
   if (p) p.classList.add('active');
   const t = titles[id] || [id, ''];
   document.getElementById('hdr-title').textContent = t[0];
-  document.getElementById('hdr-sub').textContent = t[1] || 'א.מ פיננסים';
+  document.getElementById('hdr-sub').textContent = t[1] || 'רן פיננסים';
   
   // Set active nav button
   document.querySelectorAll('.ni').forEach(btn => {
@@ -470,19 +577,22 @@ function renderDashboard() {
 // ─── CLIENTS ─────────────────────────────────────────────────────────────────
 function renderClients() {
   const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const sf = window.clientStatusFilter || null;
   const filtered = clients.filter(c =>
-    c.name.toLowerCase().includes(q) ||
+    (!sf || (c.status || 'פעיל') === sf) &&
+    (c.name.toLowerCase().includes(q) ||
     (c.phone || '').includes(q) ||
-    (c.idNum || '').includes(q)
+    (c.idNum || '').includes(q))
   );
   document.getElementById('client-count-label').textContent = filtered.length;
   
   const tbl = document.getElementById('clients-table');
+  const chip = sf ? `<div style="padding:10px 18px;border-bottom:0.5px solid var(--brd)"><span class="pill py" style="cursor:pointer" onclick="clearStatusFilter()">מסונן: ${sf} ✕</span></div>` : '';
   if (filtered.length === 0) {
-    tbl.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">לא נמצאו לקוחות<br><button class="btn btn-p" style="margin-top:10px" onclick="openClientModal()">+ הוסף לקוח</button></div></div>';
+    tbl.innerHTML = chip + '<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">לא נמצאו לקוחות<br><button class="btn btn-p" style="margin-top:10px" onclick="openClientModal()">+ הוסף לקוח</button></div></div>';
     return;
   }
-  tbl.innerHTML = `<table>
+  tbl.innerHTML = chip + `<table>
     <tr><th>שם</th><th>טלפון</th><th>סוג</th><th>חברת פנסיה</th><th>פרמיה</th><th>סטטוס</th><th>פעולות</th></tr>
     ${filtered.map(c => `<tr>
       <td style="cursor:pointer" onclick="showProfile(${c.id})"><strong style="color:var(--txt)">${c.name}</strong></td>
@@ -535,7 +645,7 @@ function showProfile(id) {
         <div class="act-row" style="padding:0">
           <div class="act-btn" onclick="window.open('tel:${c.phone}')"><div class="act-ic" style="background:rgba(16,185,129,0.12)">📞</div><span class="act-l">התקשר</span></div>
           <div class="act-btn" onclick="window.open('https://wa.me/972${(c.phone||'').replace(/[^0-9]/g,'').slice(1)}')"><div class="act-ic" style="background:rgba(16,185,129,0.12)">💬</div><span class="act-l">WhatsApp</span></div>
-          <div class="act-btn" onclick="window.open('mailto:${c.email}')"><div class="act-ic" style="background:rgba(37,99,235,0.12)">✉️</div><span class="act-l">מייל</span></div>
+          <div class="act-btn" onclick="openEmailModal(${c.id})"><div class="act-ic" style="background:rgba(37,99,235,0.12)">✉️</div><span class="act-l">מייל</span></div>
           <div class="act-btn" onclick="openMeetingModalFor(${c.id})"><div class="act-ic" style="background:rgba(245,158,11,0.12)">📅</div><span class="act-l">פגישה</span></div>
         </div>
       </div>
@@ -544,15 +654,31 @@ function showProfile(id) {
       <div class="card">
         <div class="tabs"><div class="tab active">פוליסות</div><div class="tab">משימות (${clientTasks.length})</div><div class="tab">פגישות (${clientMeetings.length})</div></div>
         <div style="padding:14px 18px">
-          ${c.pension ? `<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;border:0.5px solid var(--brd)">
+          ${(c.products && c.products.length > 0) ? `
+          <table>
+            <tr><th>סוג מוצר</th><th>חברה</th><th>פרמיה</th><th>צבירה</th><th>חידוש</th><th>סטטוס</th></tr>
+            ${c.products.map(p => `<tr>
+              <td><strong style="color:var(--txt)">${p.type||'—'}</strong></td>
+              <td>${p.company||'—'}</td>
+              <td>${p.premium?'₪'+Number(p.premium).toLocaleString()+'/חודש':'—'}</td>
+              <td>${p.balance?'₪'+Number(p.balance).toLocaleString():'—'}</td>
+              <td>${p.renewal||'—'}</td>
+              <td><span class="pill ${p.status==='פעיל'?'pg':p.status==='פגה'?'pr':'py'}">${p.status||'פעיל'}</span></td>
+            </tr>`).join('')}
+          </table>` : (c.pension ? `<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;border:0.5px solid var(--brd)">
             <div style="font-size:12px;color:var(--txt3);margin-bottom:8px">פנסיה / ביטוח</div>
             <div class="stat-row"><span class="sl">חברה</span><span class="sv">${c.pension}</span></div>
             <div class="stat-row"><span class="sl">פרמיה</span><span class="sv">₪${Number(c.premium || 0).toLocaleString()}/חודש</span></div>
-          </div>` : '<div style="color:var(--txt3);font-size:13px;padding:20px 0;text-align:center">לא הוזנו פרטי פוליסה</div>'}
+          </div>` : '<div style="color:var(--txt3);font-size:13px;padding:20px 0;text-align:center">לא הוזנו פרטי מוצרים<br><button class="btn btn-p" style="margin-top:10px;font-size:12px" onclick="editClient('+c.id+')">+ הוסף מוצרים</button></div>')}
         </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="ch"><span class="ct">🗂️ טיפולים</span><button class="btn btn-p" style="margin-right:auto;padding:4px 10px;font-size:12px" onclick="addTreatmentRow(${c.id})">+ טיפול</button></div>
+        <div style="padding:12px 18px" id="profile-treatments"></div>
       </div>
     </div>
   `;
+  renderProfileTreatments(c.id);
   
   // Tab switching in profile
   setTimeout(() => {
@@ -588,11 +714,15 @@ function openClientModal(id = null) {
       document.getElementById('f-renewal').value = c.renewal || '';
       document.getElementById('f-birth').value = c.birth || '';
       document.getElementById('f-notes').value = c.notes || '';
+      // Load products
+      document.getElementById('products-list').innerHTML = '';
+      (c.products||[]).forEach(p => addProduct(p));
     }
   } else {
     ['f-name','f-id','f-phone','f-email','f-salary','f-source','f-pension','f-premium','f-renewal','f-birth','f-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('f-type').value = 'שכיר';
     document.getElementById('f-status').value = 'פעיל';
+    document.getElementById('products-list').innerHTML = '';
   }
   modal.classList.add('open');
 }
@@ -606,6 +736,18 @@ function saveClient() {
   const phone = document.getElementById('f-phone').value.trim();
   if (!name) { alert('שם הלקוח הוא שדה חובה'); return; }
   
+  // Collect products
+  const products = [];
+  document.querySelectorAll('.prod-row').forEach(row => {
+    const type = row.querySelector('.prod-type').value;
+    const company = row.querySelector('.prod-company').value.trim();
+    const premium = row.querySelector('.prod-premium').value;
+    const balance = row.querySelector('.prod-balance').value;
+    const renewal = row.querySelector('.prod-renewal').value;
+    const status = row.querySelector('.prod-status').value;
+    if (type || company) products.push({type, company, premium, balance, renewal, status});
+  });
+
   const data = {
     name, phone,
     idNum: document.getElementById('f-id').value.trim(),
@@ -619,6 +761,7 @@ function saveClient() {
     renewal: document.getElementById('f-renewal').value,
     birth: document.getElementById('f-birth').value,
     notes: document.getElementById('f-notes').value.trim(),
+    products: products,
   };
   
   if (editingClientId) {
@@ -626,6 +769,7 @@ function saveClient() {
     if (idx !== -1) clients[idx] = { ...clients[idx], ...data };
   } else {
     data.id = Date.now();
+    data.createdAt = new Date().toISOString();
     clients.push(data);
   }
   
@@ -784,10 +928,104 @@ function deleteMeeting(id) {
   save(); renderMeetings(); updateCounts();
 }
 
-function renderMeetings() {
-  const list = document.getElementById('meetings-list');
+// ─── CALENDAR (Google-style) ─────────────────────────────────────────────────
+let calView = 'week';
+let calRef = new Date();
+const CAL_DAY_START = 7, CAL_DAY_END = 22, CAL_HH = 48;
+const CAL_DAYNAMES = ['א','ב','ג','ד','ה','ו','ש'];
+
+function _iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function _weekStart(d){ const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - x.getDay()); return x; }
+function setCalView(v){ calView = v; renderMeetings(); }
+function calToday(){ calRef = new Date(); renderMeetings(); }
+function calNav(dir){
+  if(calView === 'week') calRef.setDate(calRef.getDate() + dir*7);
+  else if(calView === 'month') calRef.setMonth(calRef.getMonth() + dir);
+  else calRef.setDate(calRef.getDate() + dir*7);
+  calRef = new Date(calRef); renderMeetings();
+}
+function calDayClick(iso){ openMeetingModal(); const df = document.getElementById('m-date'); if(df) df.value = iso; }
+function meetingClick(id){ const m = meetings.find(x => x.id == id); if(m && m.clientId) showProfile(m.clientId); }
+
+function renderMeetings(){
+  const host = document.getElementById('calendar-view');
+  const listEl = document.getElementById('meetings-list');
+  ['week','month','list'].forEach(v => { const b = document.getElementById('cal-'+v+'-btn'); if(b) b.classList.toggle('btn-p', calView === v); });
+  if(calView === 'list'){ host.style.display='none'; listEl.style.display=''; renderMeetingsList(listEl); return; }
+  host.style.display=''; listEl.style.display='none';
+  if(calView === 'week') renderWeek(host); else renderMonth(host);
+}
+
+function renderWeek(host){
+  const start = _weekStart(calRef);
+  const days = [...Array(7)].map((_,i)=>{ const d = new Date(start); d.setDate(start.getDate()+i); return d; });
+  const end = days[6];
+  document.getElementById('cal-label').textContent = `${start.getDate()} ${MONTHS_HE[start.getMonth()]} – ${end.getDate()} ${MONTHS_HE[end.getMonth()]} ${end.getFullYear()}`;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const totalH = (CAL_DAY_END - CAL_DAY_START) * CAL_HH;
+  const hours = []; for(let h=CAL_DAY_START; h<CAL_DAY_END; h++) hours.push(h);
+
+  const headCols = days.map(d => {
+    const isT = d.getTime() === today.getTime();
+    return `<div style="flex:1;text-align:center;padding:6px 2px">
+      <div style="font-size:11px;color:var(--txt3)">יום ${CAL_DAYNAMES[d.getDay()]}</div>
+      <div style="font-size:17px;font-weight:600;margin:2px auto 0;${isT?'background:var(--acc);color:#fff;border-radius:50%;width:30px;height:30px;line-height:30px':'color:var(--txt)'}">${d.getDate()}</div>
+    </div>`;
+  }).join('');
+  const head = `<div style="display:flex;border-bottom:0.5px solid var(--brd)"><div style="width:48px;flex-shrink:0"></div>${headCols}</div>`;
+
+  const gutter = `<div style="width:48px;flex-shrink:0;position:relative;height:${totalH}px">${hours.map((h,i)=>`<div style="position:absolute;top:${i*CAL_HH-6}px;right:4px;font-size:10px;color:var(--txt3)">${String(h).padStart(2,'0')}:00</div>`).join('')}</div>`;
+  const hourLines = `repeating-linear-gradient(to bottom, transparent, transparent ${CAL_HH-1}px, rgba(255,255,255,0.06) ${CAL_HH}px)`;
+  const cols = days.map(d => {
+    const iso = _iso(d);
+    const evs = meetings.filter(m => m.date === iso).map(renderEventBlock).join('');
+    return `<div onclick="calDayClick('${iso}')" style="flex:1;position:relative;height:${totalH}px;background-image:${hourLines};border-right:0.5px solid rgba(255,255,255,0.05);cursor:pointer">${evs}</div>`;
+  }).join('');
+  host.innerHTML = head + `<div style="display:flex;max-height:600px;overflow-y:auto">${gutter}${cols}</div>`;
+}
+
+function renderEventBlock(m){
+  const client = clients.find(c => c.id == m.clientId);
+  const name = client ? client.name : (m.subject || 'פגישה');
+  let top = 6, height = CAL_HH - 6, timeLabel = '';
+  if(m.time){
+    const [hh,mm] = m.time.split(':').map(Number);
+    top = ((hh - CAL_DAY_START) + mm/60) * CAL_HH;
+    height = CAL_HH - 4;
+    timeLabel = m.time + ' ';
+  }
+  return `<div onclick="event.stopPropagation();meetingClick(${m.id})" style="position:absolute;top:${top}px;right:3px;left:3px;height:${height}px;background:rgba(124,92,200,0.88);border-right:3px solid #a78bfa;border-radius:5px;padding:3px 6px;overflow:hidden;font-size:11px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3)">
+    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+    <div style="font-size:10px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${timeLabel}${m.location||''}</div>
+  </div>`;
+}
+
+function renderMonth(host){
+  const ref = new Date(calRef); ref.setDate(1);
+  document.getElementById('cal-label').textContent = `${MONTHS_HE[ref.getMonth()]} ${ref.getFullYear()}`;
+  const gridStart = new Date(ref); gridStart.setDate(1 - ref.getDay());
+  const today = new Date(); today.setHours(0,0,0,0);
+  const head = '<div style="display:grid;grid-template-columns:repeat(7,1fr)">' + CAL_DAYNAMES.map(n=>`<div style="text-align:center;padding:6px;font-size:11px;color:var(--txt3)">יום ${n}</div>`).join('') + '</div>';
+  let cells = '';
+  for(let i=0;i<42;i++){
+    const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
+    const inMonth = d.getMonth() === ref.getMonth();
+    const isT = d.getTime() === today.getTime();
+    const iso = _iso(d);
+    const dayMeet = meetings.filter(m => m.date === iso);
+    cells += `<div onclick="calDayClick('${iso}')" style="min-height:88px;border:0.5px solid rgba(255,255,255,0.05);padding:4px;cursor:pointer;${inMonth?'':'opacity:0.35'}">
+      <div style="font-size:12px;margin-bottom:2px;${isT?'background:var(--acc);color:#fff;border-radius:50%;width:22px;height:22px;line-height:22px;text-align:center':'color:var(--txt2)'}">${d.getDate()}</div>
+      ${dayMeet.slice(0,3).map(m=>{const c=clients.find(x=>x.id==m.clientId);return `<div onclick="event.stopPropagation();meetingClick(${m.id})" style="margin-top:2px;background:rgba(124,92,200,0.85);border-radius:4px;padding:1px 5px;font-size:10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.time?m.time+' ':''}${c?c.name:(m.subject||'פגישה')}</div>`;}).join('')}
+      ${dayMeet.length>3?`<div style="font-size:10px;color:var(--txt3);margin-top:2px">+${dayMeet.length-3}</div>`:''}
+    </div>`;
+  }
+  host.innerHTML = head + `<div style="display:grid;grid-template-columns:repeat(7,1fr)">${cells}</div>`;
+}
+
+function renderMeetingsList(list){
+  document.getElementById('cal-label').textContent = 'כל הפגישות';
   const sorted = [...meetings].sort((a,b) => new Date(a.date) - new Date(b.date));
-  if (sorted.length === 0) {
+  if(sorted.length === 0){
     list.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">אין פגישות מתוכננות<br><button class="btn btn-p" style="margin-top:10px" onclick="openMeetingModal()">+ קבע פגישה</button></div></div>';
     return;
   }
@@ -801,7 +1039,10 @@ function renderMeetings() {
         <td>${m.date || '—'}</td>
         <td>${m.time || '—'}</td>
         <td>${m.location || '—'}</td>
-        <td><button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteMeeting(${m.id})">✕</button></td>
+        <td style="white-space:nowrap">
+          <a href="${gcalLink(m)}" target="_blank" class="btn btn-g" style="padding:3px 8px;font-size:11px;text-decoration:none">📅 ליומן</a>
+          <button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteMeeting(${m.id})">✕</button>
+        </td>
       </tr>`;
     }).join('')}
   </table>`;
@@ -817,9 +1058,62 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
 });
 
+// ─── EXPORT EXCEL ────────────────────────────────────────────────────────────
+function exportExcel() {
+  if (clients.length === 0) { alert('אין לקוחות לייצוא'); return; }
+  const headers = ['שם','טלפון','מייל','סוג','סטטוס','חברת פנסיה','פרמיה חודשית','שכר','מקור','תאריך חידוש','הערות'];
+  const rows = clients.map(c => [
+    c.name||'', c.phone||'', c.email||'', c.type||'', c.status||'',
+    c.pension||'', c.premium||'', c.salary||'', c.source||'', c.renewal||'', c.notes||''
+  ]);
+  let csv = '﻿' + headers.join(',') + '\n';
+  rows.forEach(r => { csv += r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',') + '\n'; });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'לקוחות_AM_' + new Date().toLocaleDateString('he-IL').replace(/\//g,'-') + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── EMAIL ────────────────────────────────────────────────────────────────────
+let emailClientId = null;
+const templates = {
+  meeting: { subject: 'תזכורת פגישה — רן פיננסים', body: 'שלום {name},\n\nרציתי להזכיר לך את הפגישה שלנו הקרובה.\nאשמח לאשר את הפרטים.\n\nתודה,\nרן מסיקה\nרן פיננסים' },
+  renewal: { subject: 'חידוש פוליסה — רן פיננסים', body: 'שלום {name},\n\nרציתי לעדכן שהפוליסה שלך קרובה לחידוש.\nאשמח לתאם שיחה לבדיקת התנאים.\n\nתודה,\nרן מסיקה\nרן פיננסים' },
+  report: { subject: 'דוח שנתי — תיק הפנסיה שלך', body: 'שלום {name},\n\nמצורף סיכום שנתי של תיק הפנסיה שלך.\nאשמח לפגישת סקירה בנוחותך.\n\nתודה,\nרן מסיקה\nרן פיננסים' },
+  hello: { subject: 'שלום מרן פיננסים', body: 'שלום {name},\n\nשמח להיות הסוכן הפנסיוני שלך!\nאני כאן לכל שאלה.\n\nתודה,\nרן מסיקה\nרן פיננסים' },
+};
+
+function openEmailModal(clientId) {
+  emailClientId = clientId;
+  const c = clients.find(x => x.id == clientId);
+  if (!c) return;
+  if (!c.email) { alert('לא הוזן מייל ללקוח זה'); return; }
+  document.getElementById('email-to').value = c.email;
+  document.getElementById('email-subject').value = '';
+  document.getElementById('email-body').value = '';
+  document.getElementById('email-modal').classList.add('open');
+}
+
+function setTemplate(type) {
+  const c = clients.find(x => x.id == emailClientId);
+  const name = c ? c.name.split(' ')[0] : '';
+  const t = templates[type];
+  document.getElementById('email-subject').value = t.subject;
+  document.getElementById('email-body').value = t.body.replace('{name}', name);
+}
+
+function sendEmail() {
+  const to = document.getElementById('email-to').value;
+  const subject = encodeURIComponent(document.getElementById('email-subject').value);
+  const body = encodeURIComponent(document.getElementById('email-body').value);
+  window.open(`mailto:${to}?subject=${subject}&body=${body}`);
+  closeModal('email-modal');
+}
+
 // ─── COMMISSIONS ─────────────────────────────────────────────────────────────
-const COMPANIES = ['הראל','מגדל','מנורה','פניקס','כלל','מיטב','אחר'];
-const COLORS = ['#2563eb','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#94a3b8'];
+const COMPANIES = ['הראל','מגדל','מנורה','פניקס','כלל','מיטב','איילון','אחר'];
+const COLORS = ['#2563eb','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#14b8a6','#94a3b8'];
 const MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
 let commissions = JSON.parse(localStorage.getItem('crm_commissions') || '{}');
@@ -971,6 +1265,75 @@ function renderChart(labels, values) {
   document.getElementById('comm-chart-labels').innerHTML = labels.map(l=>`<span>${l}</span>`).join('');
 }
 
+// ─── PRODUCTS ────────────────────────────────────────────────────────────────
+const PRODUCT_TYPES=['קרן פנסיה','קרן השתלמות','קופת גמל','גמל להשקעה','פוליסת חסכון','ביטוח בריאות','ביטוח חיים','ביטוח אובדן כושר','ביטוח מנהלים','אחר'];
+const COMPANIES_LIST=['הראל','מגדל','מנורה מבטחים','פניקס','כלל','מיטב','איילון','אנליסט','ילין לפידות','אחר'];
+
+function addProduct(data){
+  data=data||{};
+  const list=document.getElementById('products-list');
+  if(!list)return;
+  const div=document.createElement('div');
+  div.className='prod-row';
+  div.style.cssText='background:rgba(255,255,255,0.03);border:0.5px solid var(--brd);border-radius:10px;padding:12px;position:relative;margin-bottom:8px';
+  div.innerHTML='<button onclick="this.closest(\'.prod-row\').remove()" style="position:absolute;top:8px;left:8px;background:rgba(239,68,68,0.12);border:0.5px solid rgba(239,68,68,0.3);color:var(--red);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px">✕</button>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div class="form-group"><label class="form-label">סוג מוצר</label><select class="form-input prod-type">'
+    +PRODUCT_TYPES.map(t=>'<option'+(data.type===t?' selected':'')+'>'+t+'</option>').join('')
+    +'</select></div>'
+    +'<div class="form-group"><label class="form-label">חברה</label><select class="form-input prod-company"><option value="">בחר...</option>'
+    +COMPANIES_LIST.map(c=>'<option'+(data.company===c?' selected':'')+'>'+c+'</option>').join('')
+    +'</select></div>'
+    +'<div class="form-group"><label class="form-label">פרמיה חודשית (₪)</label><input class="form-input prod-premium" type="number" placeholder="0" value="'+(data.premium||'')+'"/></div>'
+    +'<div class="form-group"><label class="form-label">צבירה (₪)</label><input class="form-input prod-balance" type="number" placeholder="0" value="'+(data.balance||'')+'"/></div>'
+    +'<div class="form-group"><label class="form-label">תאריך חידוש</label><input class="form-input prod-renewal" type="date" value="'+(data.renewal||'')+'"/></div>'
+    +'<div class="form-group"><label class="form-label">סטטוס</label><select class="form-input prod-status">'
+    +['פעיל','פגה','מושהה','בתהליך'].map(s=>'<option'+(data.status===s||(s==='פעיל'&&!data.status)?' selected':'')+'>'+s+'</option>').join('')
+    +'</select></div></div>';
+  list.appendChild(div);
+}
+
+// ─── DUPLICATES ──────────────────────────────────────────────────────────────
+function removeDuplicates() {
+  const before = clients.length;
+  const seen = new Map();
+  const dups = [];
+  
+  clients.forEach(c => {
+    // Key = phone OR name (normalized)
+    const phoneKey = (c.phone || '').replace(/[^0-9]/g, '');
+    const nameKey = (c.name || '').trim().toLowerCase();
+    const key = phoneKey || nameKey;
+    
+    if (seen.has(key)) {
+      dups.push(c);
+    } else {
+      seen.set(key, c);
+    }
+  });
+  
+  if (dups.length === 0) {
+    alert('✅ לא נמצאו לקוחות כפולים!');
+    return;
+  }
+  
+  // Show duplicates for review
+  const dupNames = dups.map(c => c.name + (c.phone ? ' (' + c.phone + ')' : '')).join('\n');
+  const confirm = window.confirm(
+    'נמצאו ' + dups.length + ' לקוחות כפולים:\n\n' + dupNames + '\n\nלמחוק אותם?'
+  );
+  
+  if (confirm) {
+    const keepIds = new Set(Array.from(seen.values()).map(c => c.id));
+    clients = clients.filter(c => keepIds.has(c.id));
+    save();
+    renderClients();
+    updateCounts();
+    renderDashboard();
+    alert('✅ נמחקו ' + dups.length + ' לקוחות כפולים!\nנשארו ' + clients.length + ' לקוחות.');
+  }
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 nav('dashboard');
 // Commission month/year change
@@ -983,5 +1346,1200 @@ setTimeout(() => {
   if (cm) cm.value = new Date().getMonth();
 }, 200);
 </script>
+<!-- EMAIL MODAL -->
+<div class="modal-bg" id="email-modal">
+  <div class="modal" style="width:500px">
+    <div class="modal-title">
+      <span>✉️ שלח מייל ללקוח</span>
+      <button class="modal-close" onclick="closeModal('email-modal')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group">
+        <label class="form-label">אל</label>
+        <input class="form-input" id="email-to" readonly style="opacity:0.7"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">נושא</label>
+        <input class="form-input" id="email-subject" placeholder="נושא המייל..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">תבנית מהירה</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" style="font-size:11px" onclick="setTemplate('meeting')">📅 תזכורת פגישה</button>
+          <button class="btn" style="font-size:11px" onclick="setTemplate('renewal')">🔔 חידוש פוליסה</button>
+          <button class="btn" style="font-size:11px" onclick="setTemplate('report')">📊 דוח שנתי</button>
+          <button class="btn" style="font-size:11px" onclick="setTemplate('hello')">👋 שלום ראשוני</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">תוכן ההודעה</label>
+        <textarea class="form-input" id="email-body" rows="6" placeholder="תוכן המייל..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('email-modal')">ביטול</button>
+      <button class="btn btn-p" onclick="sendEmail()">📤 פתח במייל</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-bg" id="import-modal">
+  <div class="modal" style="width:540px">
+    <div class="modal-title">
+      <span>📥 ייבוא לקוחות מ-CSV/Excel</span>
+      <button class="modal-close" onclick="closeModal('import-modal')">✕</button>
+    </div>
+    <div id="import-preview"></div>
+    <div style="padding:12px 18px;font-size:11px;color:var(--txt3);border-top:0.5px solid var(--brd)">
+      💡 כדי לייצא מ-Excel: קובץ ← שמור בשם ← CSV (מופרד בפסיקים)
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('import-modal')">ביטול</button>
+      <button class="btn btn-p" id="import-btn" onclick="confirmImport()">✅ ייבא לקוחות</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _importList = [];
+
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { alert('הקובץ ריק'); return; }
+    const headers = parseCSVLine(lines[0]).map(h => h.trim());
+    _importList = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = parseCSVLine(lines[i]);
+      const obj = {};
+      headers.forEach((h,j) => obj[h] = (vals[j]||'').trim());
+      const c = {
+        id: Date.now()+i,
+        name: obj['שם']||obj['שם מלא']||obj['name']||'',
+        phone: obj['טלפון']||obj['נייד']||obj['phone']||'',
+        email: obj['מייל']||obj['email']||'',
+        idNum: obj['תז']||obj['ת.ז']||obj['תעודת זהות']||'',
+        type: obj['סוג']||obj['סוג לקוח']||'שכיר',
+        status: obj['סטטוס']||'פעיל',
+        pension: obj['חברת פנסיה']||obj['פנסיה']||obj['חברה']||'',
+        premium: obj['פרמיה']||obj['פרמיה חודשית']||'',
+        salary: obj['שכר']||obj['הכנסה']||'',
+        source: obj['מקור']||obj['הפניה']||'ייבוא Excel',
+        renewal: obj['חידוש']||obj['תאריך חידוש']||'',
+        notes: obj['הערות']||obj['notes']||'',
+      };
+      if (c.name) _importList.push(c);
+    }
+    showImportPreview();
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value='';
+}
+
+function parseCSVLine(line) {
+  const res=[]; let cur='', inQ=false;
+  for (const ch of line) {
+    if (ch==='"') inQ=!inQ;
+    else if (ch===',' && !inQ) { res.push(cur); cur=''; }
+    else cur+=ch;
+  }
+  res.push(cur);
+  return res.map(v=>v.replace(/^"|"$/g,''));
+}
+
+function showImportPreview() {
+  const btn = document.getElementById('import-btn');
+  const prev = document.getElementById('import-preview');
+  if (_importList.length===0) {
+    prev.innerHTML='<div style="padding:20px;text-align:center;color:var(--red)">לא נמצאו לקוחות. בדוק שיש עמודה בשם "שם"</div>';
+    btn.style.display='none';
+  } else {
+    btn.style.display='block';
+    btn.textContent='✅ ייבא '+_importList.length+' לקוחות';
+    prev.innerHTML=`<div style="padding:12px 18px;background:rgba(16,185,129,0.08);font-size:13px;color:var(--grn)">נמצאו ${_importList.length} לקוחות</div>
+    <div style="max-height:260px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
+    <tr><th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">שם</th><th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">טלפון</th><th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">חברה</th></tr>
+    ${_importList.slice(0,15).map(c=>`<tr><td style="padding:8px 14px;font-size:12px;color:var(--txt);border-bottom:0.5px solid rgba(255,255,255,0.03)">${c.name}</td><td style="padding:8px 14px;font-size:12px;color:var(--txt2);border-bottom:0.5px solid rgba(255,255,255,0.03)">${c.phone||'—'}</td><td style="padding:8px 14px;font-size:12px;color:var(--txt2);border-bottom:0.5px solid rgba(255,255,255,0.03)">${c.pension||'—'}</td></tr>`).join('')}
+    ${_importList.length>15?`<tr><td colspan="3" style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${_importList.length-15}</td></tr>`:''}
+    </table></div>`;
+  }
+  document.getElementById('import-modal').classList.add('open');
+}
+
+function confirmImport() {
+  let added=0, skipped=0;
+  _importList.forEach(c => {
+    if (c.phone && clients.find(x=>x.phone===c.phone)) { skipped++; return; }
+    clients.push(c); added++;
+  });
+  save(); closeModal('import-modal'); renderClients(); updateCounts(); renderDashboard();
+  alert('✅ יובאו '+added+' לקוחות'+(skipped?' | ⚠️ '+skipped+' כבר קיימים':''));
+}
+</script>
+
+<!-- CLOUD SYNC (FIREBASE) MODAL -->
+<div class="modal-bg" id="fb-modal">
+  <div class="modal" style="width:600px">
+    <div class="modal-title">
+      <span>☁️ סנכרון ענן — מחשב ↔ מובייל</span>
+      <button class="modal-close" onclick="closeModal('fb-modal')">✕</button>
+    </div>
+    <div style="padding:4px 2px">
+      <div id="fb-status" style="padding:10px 14px;border-radius:8px;background:rgba(255,255,255,0.04);font-size:13px;margin-bottom:14px">🔴 לא מחובר לענן</div>
+
+      <div style="font-size:12px;color:var(--txt3);line-height:1.7;margin-bottom:10px">
+        סנכרון אמיתי בין המחשב לטלפון דורש חיבור חד-פעמי ל-Firebase (חינמי, של גוגל).<br>
+        עקוב אחרי המדריך שאשלח לך, הדבק כאן את ההגדרות, והתחבר. <b>לאחר מכן הכל אוטומטי.</b>
+      </div>
+
+      <label style="font-size:11px;color:var(--txt3);display:block;margin-bottom:4px">1. הדבק את הגדרות Firebase (firebaseConfig)</label>
+      <textarea id="fb-config" class="form-input" rows="7" placeholder='{
+  apiKey: "...",
+  authDomain: "ran-crm.firebaseapp.com",
+  projectId: "ran-crm",
+  ...
+}' style="font-family:monospace;font-size:11px;margin-bottom:10px"></textarea>
+
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><label style="font-size:11px;color:var(--txt3);display:block;margin-bottom:4px">2. אימייל</label>
+          <input id="fb-email" class="form-input" type="email" placeholder="you@gmail.com"></div>
+        <div style="flex:1"><label style="font-size:11px;color:var(--txt3);display:block;margin-bottom:4px">סיסמה (6+ תווים)</label>
+          <input id="fb-pass" class="form-input" type="password" placeholder="••••••"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-p" onclick="cloudConnect(true)">☁️ התחבר וסנכרן</button>
+        <button class="btn btn-r" onclick="cloudDisconnect()">נתק</button>
+        <button class="btn" onclick="document.getElementById('fb-rules').style.display = document.getElementById('fb-rules').style.display==='none'?'block':'none'">📋 חוקי אבטחה</button>
+      </div>
+
+      <pre id="fb-rules" style="display:none;margin-top:12px;padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:11px;color:var(--txt2);white-space:pre-wrap;direction:ltr;text-align:left">rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /crm_users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- MERGE DUPLICATES MODAL -->
+<div class="modal-bg" id="merge-modal">
+  <div class="modal" style="width:640px">
+    <div class="modal-title">
+      <span>🔗 איחוד כפילויות חכם</span>
+      <button class="modal-close" onclick="closeModal('merge-modal')">✕</button>
+    </div>
+    <div id="merge-preview" style="max-height:400px;overflow-y:auto"></div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('merge-modal')">ביטול</button>
+      <button class="btn btn-p" id="merge-btn" onclick="confirmMerge()">אחד נבחרים</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK IMPORT MODAL -->
+<div class="modal-bg" id="quick-modal">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">
+      <span>⚡ ייבוא מהיר — טלפונים ומיילים</span>
+      <button class="modal-close" onclick="closeModal('quick-modal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:10px;line-height:1.6">
+      הדבק שורה לכל לקוח. אפשר שם, טלפון ומייל בכל סדר (מופרד בפסיק / טאב / רווח).<br>
+      המערכת מזהה לבד מה טלפון ומה מייל. דוגמה:<br>
+      <span style="color:var(--txt2)">ישראל ישראלי, 050-1234567, israel@mail.com</span>
+    </div>
+    <textarea class="form-input" id="quick-text" rows="11" placeholder="ישראל ישראלי, 050-1234567, israel@mail.com
+דנה כהן 0529998888 dana@gmail.com
+0541112233"></textarea>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('quick-modal')">ביטול</button>
+      <button class="btn btn-p" onclick="runQuickImport()">➕ הוסף לקוחות</button>
+    </div>
+  </div>
+</div>
+
+<!-- MASLEKA IMPORT MODAL -->
+<div class="modal-bg" id="masleka-modal">
+  <div class="modal" style="width:600px">
+    <div class="modal-title">
+      <span>🏛️ ייבוא ממסלקה פנסיונית</span>
+      <button class="modal-close" onclick="closeModal('masleka-modal')">✕</button>
+    </div>
+    <div id="masleka-preview"></div>
+    <div style="padding:12px 18px;font-size:11px;color:var(--txt3);border-top:0.5px solid var(--brd)">
+      💡 לקוח קיים (לפי ת.ז או שם) יקבל את המוצרים והצבירות. לקוח חדש ייווצר.
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('masleka-modal')">ביטול</button>
+      <button class="btn btn-p" id="masleka-btn" onclick="confirmMasleka()">✅ ייבא / מזג</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   רן פיננסים CRM v7 — מנוע מסלקה + אחסון מסונכרן + ייבוא מהיר
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ---------- אחסון אחיד: קובץ JSON יחיד (File System Access API) ---------- */
+let fileHandle = null;
+let _syncTimer = null;
+
+function collectAll(){ return { v:7, exportedAt:new Date().toISOString(), clients, tasks, meetings, commissions }; }
+function applyAll(d){
+  if(Array.isArray(d.clients)) clients = d.clients;
+  if(Array.isArray(d.tasks)) tasks = d.tasks;
+  if(Array.isArray(d.meetings)) meetings = d.meetings;
+  if(d.commissions && typeof d.commissions==='object') commissions = d.commissions;
+  localStorage.setItem('crm_clients', JSON.stringify(clients));
+  localStorage.setItem('crm_tasks', JSON.stringify(tasks));
+  localStorage.setItem('crm_meetings', JSON.stringify(meetings));
+  localStorage.setItem('crm_commissions', JSON.stringify(commissions));
+}
+
+// hook existing save() + saveCommissions() to also sync to bound file
+const _origSave = save;
+save = function(){ _origSave(); scheduleSync(); if(typeof cloudPush==='function') cloudPush(); };
+const _origSaveComm = saveCommissions;
+saveCommissions = function(){ _origSaveComm(); scheduleSync(); };
+
+function scheduleSync(){ if(!fileHandle) return; clearTimeout(_syncTimer); _syncTimer = setTimeout(()=>syncToFile(true), 700); }
+
+async function syncToFile(silent){
+  if(!fileHandle) return;
+  try{
+    const perm = await fileHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted'){
+      if(silent) return;
+      const r = await fileHandle.requestPermission({mode:'readwrite'});
+      if(r !== 'granted') return;
+    }
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(collectAll(), null, 2));
+    await w.close();
+    updateStorageStatus();
+  }catch(e){ console.warn('sync failed', e); }
+}
+
+async function connectDataFile(){
+  if(!window.showSaveFilePicker){
+    alert('הדפדפן לא תומך בחיבור קובץ. השתמש ב-Chrome או Edge, או בגיבוי JSON ידני.');
+    return;
+  }
+  try{
+    const h = await window.showSaveFilePicker({
+      suggestedName: 'ran-crm-data.json',
+      types: [{ description:'CRM Data', accept:{'application/json':['.json']} }]
+    });
+    fileHandle = h;
+    await idbSet('dataFile', h);
+    await syncToFile(false);
+    updateStorageStatus();
+    alert('✅ חובר קובץ נתונים.\nשמור אותו בתיקייה מסונכרנת (OneDrive / Google Drive) — וכל המכשירים יעבדו על אותו מקור.');
+  }catch(e){ if(e.name!=='AbortError') alert('שגיאה: '+e.message); }
+}
+
+async function loadFromFile(){
+  if(!fileHandle){ alert('לא מחובר קובץ נתונים. לחץ קודם "חבר קובץ מסונכרן".'); return; }
+  try{
+    const p = await fileHandle.requestPermission({mode:'readwrite'});
+    if(p !== 'granted') return;
+    const f = await fileHandle.getFile();
+    const d = JSON.parse(await f.text());
+    if(!confirm('לטעון את הנתונים מהקובץ המחובר?\n(ידרוס את הנתונים המקומיים בדפדפן זה)')) return;
+    applyAll(d);
+    nav('dashboard');
+    alert('✅ נטען מהקובץ המחובר');
+  }catch(e){ alert('שגיאה בטעינה: '+e.message); }
+}
+
+function backupJSON(){
+  const blob = new Blob([JSON.stringify(collectAll(), null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ran-crm-גיבוי-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function restoreJSON(input){
+  const f = input.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const d = JSON.parse(e.target.result);
+      if(!confirm('שחזור גיבוי ידרוס את הנתונים הנוכחיים. להמשיך?')) return;
+      applyAll(d); nav('dashboard');
+      alert('✅ שוחזר מהגיבוי');
+    }catch(err){ alert('קובץ גיבוי לא תקין'); }
+  };
+  r.readAsText(f, 'UTF-8'); input.value='';
+}
+
+function updateStorageStatus(){
+  const el = document.getElementById('storage-status');
+  if(!el) return;
+  if(fileHandle){ el.textContent = '🟢 מחובר: ' + (fileHandle.name||'קובץ נתונים'); el.style.color='var(--grn)'; }
+  else { el.textContent = 'מקומי — דפדפן זה בלבד'; el.style.color='var(--txt3)'; }
+  if(typeof updateBackupStatus === 'function') updateBackupStatus();
+}
+
+// mini-IndexedDB to persist the file handle across sessions
+function idbSet(k,v){ return new Promise((res,rej)=>{ const r=indexedDB.open('crm_fs',1); r.onupgradeneeded=()=>r.result.createObjectStore('h'); r.onsuccess=()=>{ const tx=r.result.transaction('h','readwrite'); tx.objectStore('h').put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }; r.onerror=()=>rej(r.error); }); }
+function idbGet(k){ return new Promise((res,rej)=>{ const r=indexedDB.open('crm_fs',1); r.onupgradeneeded=()=>r.result.createObjectStore('h'); r.onsuccess=()=>{ const tx=r.result.transaction('h','readonly'); const g=tx.objectStore('h').get(k); g.onsuccess=()=>res(g.result); g.onerror=()=>rej(g.error); }; r.onerror=()=>rej(r.error); }); }
+
+(async function initStorage(){
+  try{ const h = await idbGet('dataFile'); if(h){ fileHandle = h; updateStorageStatus(); } }catch(e){}
+})();
+
+/* ---------- ייבוא מהיר: טלפונים + מיילים ---------- */
+function openQuickImport(){
+  document.getElementById('quick-text').value = '';
+  document.getElementById('quick-modal').classList.add('open');
+}
+function runQuickImport(){
+  const lines = document.getElementById('quick-text').value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(!lines.length){ alert('לא הוזן טקסט'); return; }
+  let added=0, skip=0;
+  lines.forEach((line, i)=>{
+    const emailM = line.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    const email = emailM ? emailM[0] : '';
+    let rest = email ? line.replace(email,'') : line;
+    const phoneM = rest.match(/0\d{1,2}[-\s.]?\d{3}[-\s.]?\d{4}|0\d{8,9}/);
+    const phoneRaw = phoneM ? phoneM[0] : '';
+    const phone = phoneRaw.replace(/[-\s.]/g,'');
+    let name = rest.replace(phoneRaw,'').replace(/[,;\t|]+/g,' ').replace(/\s+/g,' ').trim();
+    if(!name) name = phone || email || ('לקוח '+(i+1));
+    const norm = phone.replace(/\D/g,'');
+    if(norm && clients.find(c => (c.phone||'').replace(/\D/g,'') === norm)){ skip++; return; }
+    clients.push({ id: Date.now()+i, createdAt:new Date().toISOString(), name, phone, email, idNum:'', type:'שכיר', status:'מעקב', salary:'', source:'ייבוא מהיר', pension:'', premium:'', renewal:'', birth:'', notes:'', products:[] });
+    added++;
+  });
+  save(); closeModal('quick-modal'); nav('clients'); updateCounts(); renderDashboard();
+  alert('✅ נוספו '+added+' לקוחות' + (skip ? ' | '+skip+' כבר קיימים (לפי טלפון)' : ''));
+}
+
+/* ---------- מנוע מסלקה: חילוץ ZIP (DecompressionStream, ללא ספריות) ---------- */
+async function extractZipXmls(arrayBuffer){
+  const u8 = new Uint8Array(arrayBuffer);
+  const dv = new DataView(arrayBuffer);
+  let eocd = -1;
+  for(let i = u8.length-22; i >= 0; i--){ if(dv.getUint32(i,true) === 0x06054b50){ eocd = i; break; } }
+  if(eocd < 0) throw new Error('קובץ ZIP לא תקין');
+  const count = dv.getUint16(eocd+10, true);
+  let p = dv.getUint32(eocd+16, true);
+  const entries = [];
+  for(let i = 0; i < count; i++){
+    if(dv.getUint32(p,true) !== 0x02014b50) break;
+    const method = dv.getUint16(p+10, true);
+    const compSize = dv.getUint32(p+20, true);
+    const nameLen = dv.getUint16(p+28, true);
+    const extraLen = dv.getUint16(p+30, true);
+    const commLen = dv.getUint16(p+32, true);
+    const lhOff = dv.getUint32(p+42, true);
+    const name = new TextDecoder().decode(u8.subarray(p+46, p+46+nameLen));
+    entries.push({ name, method, compSize, lhOff });
+    p += 46 + nameLen + extraLen + commLen;
+  }
+  const out = [];
+  for(const e of entries){
+    if(!/\.xml$/i.test(e.name)) continue;
+    const lhNameLen = dv.getUint16(e.lhOff+26, true);
+    const lhExtraLen = dv.getUint16(e.lhOff+28, true);
+    const start = e.lhOff + 30 + lhNameLen + lhExtraLen;
+    const comp = u8.subarray(start, start + e.compSize);
+    let bytes;
+    if(e.method === 0){ bytes = comp; }
+    else if(e.method === 8){
+      const ds = new DecompressionStream('deflate-raw');
+      const stream = new Blob([comp]).stream().pipeThrough(ds);
+      bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+    } else { continue; }
+    out.push({ name: e.name, text: new TextDecoder('utf-8').decode(bytes) });
+  }
+  return out;
+}
+
+/* ---------- מנוע מסלקה: ניתוח XML (מבנה אחיד) ---------- */
+// קודי SUG-MUTZAR נפוצים (ניתן לכוונן מול קובץ אמיתי)
+const SUG_MUTZAR = { '1':'ביטוח מנהלים', '2':'קרן פנסיה', '3':'קופת גמל', '4':'קרן השתלמות', '5':'קופת גמל מרכזית לפיצויים', '6':'ביטוח חיים', '7':'פוליסת חיסכון' };
+
+function _txt(root, names){
+  const set = new Set(names.map(s=>s.toUpperCase()));
+  const all = root.getElementsByTagName('*');
+  for(const e of all){
+    const ln = (e.localName || e.nodeName || '').toUpperCase();
+    if(set.has(ln) && e.textContent && e.textContent.trim()) return e.textContent.trim();
+  }
+  return '';
+}
+function _nodes(root, names){
+  const set = new Set(names.map(s=>s.toUpperCase()));
+  const out = [];
+  const all = root.getElementsByTagName('*');
+  for(const e of all){ if(set.has((e.localName||e.nodeName||'').toUpperCase())) out.push(e); }
+  return out;
+}
+function _num(s){ if(!s) return ''; const n = parseFloat(String(s).replace(/[^0-9.\-]/g,'')); return isNaN(n) ? '' : n; }
+
+function parseMaslekaXml(text){
+  let doc;
+  try{ doc = new DOMParser().parseFromString(text, 'application/xml'); }catch(e){ return null; }
+  if(doc.getElementsByTagName('parsererror').length){
+    try{ doc = new DOMParser().parseFromString(text, 'text/xml'); }catch(e){ return null; }
+  }
+  const fname = _txt(doc, ['SHEM-PRATI','SHEM-PRATI-LAKOACH']);
+  const lname = _txt(doc, ['SHEM-MISHPACHA','SHEM-MISHPACHA-LAKOACH']);
+  let name = (fname + ' ' + lname).trim();
+  if(!name) name = _txt(doc, ['SHEM-LAKOACH','SHEM-MEVUTACH','SHEM-OVED']) || 'לקוח מסלקה';
+  const idNum = _txt(doc, ['MISPAR-ZIHUY-LAKOACH','MISPAR-ZIHUY','MS-ZIHUY-LAKOACH','MISPAR-ZEHUT']);
+  const rootCompany = _txt(doc, ['SHEM-YATZRAN','SHEM-HEVRA-MENAHELET','SHEM-GUF-MOSDI','SHEM-METAFEL']);
+
+  // מאתר מיכלי מוצר; אם אין — מתייחס לכל המסמך כמוצר אחד
+  let containers = _nodes(doc, ['MUTZAR','HESHBON-O-POLISA','NETUNEI-MUTZAR','PERUT-MUTZAR','POLISA','KUPA']);
+  if(!containers.length) containers = [doc.documentElement];
+
+  const products = [];
+  containers.forEach(node => {
+    const company = _txt(node, ['SHEM-YATZRAN','SHEM-HEVRA','SHEM-GUF-MOSDI','SHEM-METAFEL']) || rootCompany || '';
+    const code = _txt(node, ['SUG-MUTZAR','SUG-KUPA','SUG-POLISA','KOD-MUTZAR']);
+    const typeName = SUG_MUTZAR[code] || _txt(node, ['SHEM-MUTZAR']) || 'מוצר פנסיוני';
+    const balance = _num(_txt(node, ['TOTAL-CHISACHON-MTZBR','YITRAT-KASPEY-TAGMULIM','TOTAL-ERKEI-PIDION','YITRA-TZVURA','TOTAL-CHISACHON-MITZTABER','YETERA-LELO-TASHLUM']));
+    const monthly = _num(_txt(node, ['SACH-HAFKADA-SHESHULMA-HODSHI','HAFKADA-SHOTEFET','TASHLUM-HODSHI','SACH-KOL-HAFKADOT-SHOTEF','SCHUM-HAFRASHA']));
+    if(company || balance || monthly){
+      products.push({ type: typeName, company, premium: monthly, balance, renewal:'', status:'פעיל' });
+    }
+  });
+
+  const totalAccum = products.reduce((s,p)=> s + (Number(p.balance)||0), 0);
+  return { name, idNum, products, totalAccum };
+}
+
+let _maslekaList = [];
+
+async function importMasleka(input){
+  const files = [...input.files];
+  if(!files.length) return;
+  _maslekaList = [];
+  const docs = [];
+  for(const f of files){
+    try{
+      if(/\.zip$/i.test(f.name)){
+        const xmls = await extractZipXmls(await f.arrayBuffer());
+        docs.push(...xmls.map(x => x.text));
+      } else {
+        docs.push(await f.text());
+      }
+    }catch(e){ console.warn(e); alert('שגיאה בקריאת '+f.name+': '+e.message); }
+  }
+  docs.forEach(t => {
+    const parsed = parseMaslekaXml(t);
+    if(parsed && parsed.products.length) _maslekaList.push(parsed);
+  });
+  input.value = '';
+  if(!_maslekaList.length){
+    alert('לא נמצאו נתוני מוצרים בקבצים.\nייתכן שמבנה ה-XML מעט שונה — שלח לי קובץ דוגמה (אפשר למחוק ת.ז) ואכוונן את המנתח במדויק.');
+    return;
+  }
+  showMaslekaPreview();
+}
+
+function showMaslekaPreview(){
+  const totalProd = _maslekaList.reduce((s,m)=> s + m.products.length, 0);
+  const grand = _maslekaList.reduce((s,m)=> s + m.totalAccum, 0);
+  const prev = document.getElementById('masleka-preview');
+  prev.innerHTML = `
+    <div style="padding:12px 18px;background:rgba(16,185,129,0.08);font-size:13px;color:var(--grn)">
+      נמצאו ${_maslekaList.length} לקוחות · ${totalProd} מוצרים · צבירה כוללת ₪${grand.toLocaleString('he-IL')}
+    </div>
+    <div style="max-height:280px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">לקוח</th>
+          <th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">מוצרים</th>
+          <th style="padding:8px 14px;font-size:11px;color:var(--txt3);text-align:right;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--brd)">צבירה</th>
+        </tr>
+        ${_maslekaList.slice(0,20).map(m=>`<tr>
+          <td style="padding:8px 14px;font-size:12px;color:var(--txt);border-bottom:0.5px solid rgba(255,255,255,0.03)">${m.name}${m.idNum?' <span style="color:var(--txt3)">('+m.idNum+')</span>':''}</td>
+          <td style="padding:8px 14px;font-size:12px;color:var(--txt2);border-bottom:0.5px solid rgba(255,255,255,0.03)">${m.products.map(p=>p.type+(p.company?' · '+p.company:'')).join('<br>')}</td>
+          <td style="padding:8px 14px;font-size:12px;color:var(--grn);border-bottom:0.5px solid rgba(255,255,255,0.03)">₪${m.totalAccum.toLocaleString('he-IL')}</td>
+        </tr>`).join('')}
+        ${_maslekaList.length>20?`<tr><td colspan="3" style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${_maslekaList.length-20}</td></tr>`:''}
+      </table>
+    </div>`;
+  document.getElementById('masleka-btn').textContent = '✅ ייבא / מזג ' + _maslekaList.length + ' לקוחות';
+  document.getElementById('masleka-modal').classList.add('open');
+}
+
+function confirmMasleka(){
+  let created=0, merged=0, prodAdded=0;
+  _maslekaList.forEach(m=>{
+    let c = null;
+    const idn = (m.idNum||'').replace(/\D/g,'');
+    if(idn) c = clients.find(x => (x.idNum||'').replace(/\D/g,'') === idn);
+    if(!c) c = clients.find(x => (x.name||'').trim() === m.name.trim());
+    if(!c){
+      c = { id: Date.now()+Math.floor(Math.random()*100000), createdAt:new Date().toISOString(), name:m.name, phone:'', email:'', idNum:m.idNum, type:'שכיר', status:'פעיל', salary:'', source:'מסלקה', pension:'', premium:'', renewal:'', birth:'', notes:'', products:[] };
+      clients.push(c); created++;
+    } else {
+      merged++;
+      if(!c.products) c.products = [];
+      if(!c.idNum && m.idNum) c.idNum = m.idNum;
+    }
+    m.products.forEach(p=>{
+      const ex = c.products.find(q => q.type===p.type && q.company===p.company);
+      if(ex){ if(p.balance) ex.balance=p.balance; if(p.premium) ex.premium=p.premium; }
+      else { c.products.push(p); prodAdded++; }
+    });
+    if(!c.pension && m.products[0] && m.products[0].company) c.pension = m.products[0].company;
+  });
+  save(); closeModal('masleka-modal'); nav('clients'); updateCounts(); renderDashboard();
+  const dups = findDupGroups().length;
+  alert('✅ מסלקה:\n' + created + ' לקוחות חדשים\n' + merged + ' לקוחות עודכנו\n' + prodAdded + ' מוצרים נוספו' + (dups ? '\n\n⚠️ נמצאו ' + dups + ' כפילויות אפשריות — לחץ "🔗 איחוד חכם" לבדיקה' : ''));
+}
+
+/* ─────────── שיפורי דשבורד: צינור מכירה + מי מתקרר ─────────── */
+function clientAUM(c){ return (c.products||[]).reduce((s,p)=> s + (Number(p.balance)||0), 0); }
+
+const PIPELINE_STAGES = [
+  { key:'מעקב',    label:'לידים / מעקב', color:'#2563eb' },
+  { key:'פעיל',    label:'פעילים',        color:'#10b981' },
+  { key:'בסיכון',  label:'בסיכון',        color:'#f59e0b' },
+  { key:'לא פעיל', label:'לא פעיל',       color:'#64748b' },
+];
+
+function renderPipeline(){
+  const body = document.getElementById('pipeline-body');
+  if(!body) return;
+  const total = clients.length || 1;
+  let totalAUM = 0;
+  const html = PIPELINE_STAGES.map(st => {
+    const list = clients.filter(c => (c.status||'פעיל') === st.key);
+    const aum = list.reduce((s,c)=> s + clientAUM(c), 0);
+    totalAUM += aum;
+    const pct = Math.round(list.length/total*100);
+    return `<div onclick="setStatusFilter('${st.key}')" style="flex:1;min-width:120px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid var(--brd);border-top:3px solid ${st.color};border-radius:10px;padding:12px 14px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.07)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+      <div style="font-size:11px;color:var(--txt3)">${st.label}</div>
+      <div style="font-size:26px;font-weight:700;color:var(--txt)">${list.length}</div>
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:3px;margin:6px 0"><div style="height:100%;width:${pct}%;background:${st.color};border-radius:3px"></div></div>
+      <div style="font-size:11px;color:var(--txt3)">${pct}%${aum ? ' · ₪'+aum.toLocaleString('he-IL') : ''}</div>
+    </div>`;
+  }).join('');
+  body.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap">${html}</div>`;
+  const aumEl = document.getElementById('pipeline-aum');
+  if(aumEl) aumEl.textContent = totalAUM ? 'צבירה מנוהלת: ₪' + totalAUM.toLocaleString('he-IL') : '';
+}
+
+function setStatusFilter(status){ window.clientStatusFilter = status; nav('clients'); }
+function clearStatusFilter(){ window.clientStatusFilter = null; renderClients(); }
+
+function _daysSince(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr); if(isNaN(d)) return null;
+  return Math.floor((Date.now() - d.getTime())/86400000);
+}
+function _waLink(phone){
+  let n = (phone||'').replace(/\D/g,'');
+  if(!n) return '';
+  if(n.startsWith('0')) n = '972' + n.slice(1);
+  else if(!n.startsWith('972')) n = '972' + n;
+  return 'https://wa.me/' + n;
+}
+
+function renderColdList(){
+  const body = document.getElementById('cold-body');
+  if(!body) return;
+  const threshold = parseInt(document.getElementById('cold-threshold')?.value || 14);
+  const pool = clients
+    .filter(c => (c.status||'') !== 'לא פעיל')
+    .map(c => ({ c, days: _daysSince(c.lastContact) }))
+    .filter(x => x.days === null || x.days >= threshold)
+    .sort((a,b) => {
+      if(a.days === null && b.days === null) return 0;
+      if(a.days === null) return -1;
+      if(b.days === null) return 1;
+      return b.days - a.days;
+    });
+  const cnt = document.getElementById('cold-count');
+  if(cnt) cnt.textContent = pool.length;
+  if(pool.length === 0){
+    body.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">הכל מטופל — אף אחד לא מתקרר</div></div>';
+    return;
+  }
+  body.innerHTML = pool.slice(0,12).map(({c,days}) => {
+    const wa = _waLink(c.phone);
+    const ageTxt = days === null ? 'טרם נוצר קשר' : 'לפני ' + days + ' ימים';
+    const ageColor = (days === null || days >= 30) ? 'var(--red)' : 'var(--yel)';
+    return `<div class="al-row">
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(37,99,235,0.2);color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer" onclick="showProfile(${c.id})">${(c.name||'?').slice(0,2)}</div>
+      <div style="flex:1;cursor:pointer" onclick="showProfile(${c.id})">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.name}</div>
+        <div style="font-size:11px;color:${ageColor}">${ageTxt}${c.source ? ' · '+c.source : ''}</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        ${wa ? `<a href="${wa}" target="_blank" class="btn btn-g" style="padding:4px 9px;font-size:13px;text-decoration:none">💬</a>` : ''}
+        ${c.phone ? `<a href="tel:${c.phone}" class="btn" style="padding:4px 9px;font-size:13px;text-decoration:none">📞</a>` : ''}
+        <button class="btn btn-p" style="padding:4px 9px;font-size:11px" onclick="markContacted(${c.id})">✓ סומן</button>
+      </div>
+    </div>`;
+  }).join('') + (pool.length>12 ? `<div style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${pool.length-12} ממתינים</div>` : '');
+}
+
+function markContacted(id){
+  const c = clients.find(x => x.id == id);
+  if(!c) return;
+  c.lastContact = new Date().toISOString().slice(0,10);
+  save();
+  renderColdList(); renderPipeline(); updateCounts();
+}
+
+// hook dashboard render to also draw pipeline + cold list
+const _origRenderDash = renderDashboard;
+renderDashboard = function(){ _origRenderDash(); renderPipeline(); renderTreatments(); renderColdList(); renderNewClients(); renderBirthdays(); renderRenewals(); };
+
+/* ─────────── לקוחות חדשים (45 יום) + הסרה ─────────── */
+function _addedDate(c){
+  if(c.createdAt){ const d = new Date(c.createdAt); if(!isNaN(d)) return d; }
+  const n = Number(c.id);
+  if(n > 1e12) return new Date(n);   // id is a Date.now() timestamp
+  return null;
+}
+function renderNewClients(){
+  const body = document.getElementById('new-body'); if(!body) return;
+  const now = Date.now();
+  const list = clients.map(c => {
+    if(c.hideFromNew) return null;
+    const d = _addedDate(c); if(!d) return null;
+    const days = Math.floor((now - d.getTime())/86400000);
+    if(days > 45 || days < 0) return null;
+    return { c, days };
+  }).filter(Boolean).sort((a,b) => a.days - b.days);
+  document.getElementById('new-count').textContent = list.length;
+  if(!list.length){ body.innerHTML = '<div class="empty"><div class="empty-icon">🆕</div><div class="empty-text">אין לקוחות חדשים ב-45 הימים האחרונים</div></div>'; return; }
+  body.innerHTML = list.slice(0,15).map(({c,days}) => {
+    const wa = _waLink(c.phone);
+    const addedTxt = days === 0 ? 'נוסף היום' : (days === 1 ? 'נוסף אתמול' : 'נוסף לפני '+days+' ימים');
+    return `<div class="al-row">
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(16,185,129,0.18);color:#6ee7b7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer" onclick="showProfile(${c.id})">${(c.name||'?').slice(0,2)}</div>
+      <div style="flex:1;cursor:pointer" onclick="showProfile(${c.id})">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${addedTxt}${c.source ? ' · '+c.source : ''}</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        ${wa ? `<a href="${wa}" target="_blank" class="btn btn-g" style="padding:4px 9px;font-size:13px;text-decoration:none">💬</a>` : ''}
+        <button class="btn btn-r" style="padding:4px 9px;font-size:11px" onclick="dismissNewClient(${c.id})" title="הסר מהרשימה (הלקוח לא נמחק)">✕ הסר</button>
+      </div>
+    </div>`;
+  }).join('') + (list.length > 15 ? `<div style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${list.length-15}</div>` : '');
+}
+function dismissNewClient(id){
+  const c = clients.find(x => x.id == id); if(!c) return;
+  c.hideFromNew = true;
+  save();
+  renderNewClients();
+}
+
+/* ─────────── ימי הולדת החודש + חידושים קרובים ─────────── */
+function renderBirthdays(){
+  const body = document.getElementById('bday-body'); if(!body) return;
+  const m = new Date().getMonth(), y = new Date().getFullYear();
+  const list = clients.map(c => {
+    if(!c.birth) return null;
+    const d = new Date(c.birth); if(isNaN(d)) return null;
+    if(d.getMonth() !== m) return null;
+    return { c, day: d.getDate(), age: y - d.getFullYear() };
+  }).filter(Boolean).sort((a,b) => a.day - b.day);
+  document.getElementById('bday-count').textContent = list.length;
+  if(!list.length){ body.innerHTML = '<div class="empty"><div class="empty-icon">🎂</div><div class="empty-text">אין ימי הולדת החודש</div></div>'; return; }
+  body.innerHTML = list.map(({c,day,age}) => {
+    const wa = _waLink(c.phone);
+    return `<div class="al-row">
+      <div style="flex:1;cursor:pointer" onclick="showProfile(${c.id})">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${day} לחודש${age ? ' · גיל '+age : ''}</div>
+      </div>
+      ${wa ? `<a href="${wa}" target="_blank" class="btn btn-g" style="padding:4px 9px;font-size:13px;text-decoration:none">💬</a>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderRenewals(){
+  const body = document.getElementById('renew-body'); if(!body) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const items = [];
+  clients.forEach(c => {
+    const dates = [];
+    if(c.renewal) dates.push({ d:c.renewal, label:'' });
+    (c.products||[]).forEach(p => { if(p.renewal) dates.push({ d:p.renewal, label:p.type||'' }); });
+    dates.forEach(({d,label}) => {
+      const dt = new Date(d); if(isNaN(dt)) return;
+      const days = Math.ceil((dt - today)/86400000);
+      if(days <= 60 && days >= -30) items.push({ c, days, label });
+    });
+  });
+  items.sort((a,b) => a.days - b.days);
+  document.getElementById('renew-count').textContent = items.length;
+  if(!items.length){ body.innerHTML = '<div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">אין חידושים ב-60 הימים הקרובים</div></div>'; return; }
+  body.innerHTML = items.slice(0,12).map(({c,days,label}) => {
+    const overdue = days < 0;
+    const txt = overdue ? 'פג לפני '+(-days)+' ימים' : (days === 0 ? 'היום' : 'בעוד '+days+' ימים');
+    const col = overdue ? 'var(--red)' : (days <= 14 ? 'var(--yel)' : 'var(--txt3)');
+    return `<div class="al-row">
+      <div style="flex:1;cursor:pointer" onclick="showProfile(${c.id})">
+        <div style="font-size:13px;font-weight:500;color:var(--txt)">${c.name}${label ? ' <span style="color:var(--txt3);font-size:11px">· '+label+'</span>' : ''}</div>
+        <div style="font-size:11px;color:${col}">${txt}</div>
+      </div>
+    </div>`;
+  }).join('') + (items.length > 12 ? `<div style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${items.length-12}</div>` : '');
+}
+
+/* ─────────── איחוד כפילויות חכם (התאמת שם מטושטשת) ─────────── */
+function _normName(s){
+  let x = (s||'').toString();
+  x = x.replace(/["'`׳״.\-_]/g,'').replace(/\s+/g,' ').trim();
+  x = x.replace(/יי/g,'י').replace(/וו/g,'ו');   // כתיב מלא -> חסר
+  return x;
+}
+function _nameKey(s){ return _normName(s).split(' ').filter(Boolean).sort().join(' '); }
+function _lev(a,b){
+  const m=a.length, n=b.length;
+  if(!m) return n; if(!n) return m;
+  let prev = Array.from({length:n+1}, (_,i)=>i);
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+function _isDup(a,b){
+  const ia=(a.idNum||'').replace(/\D/g,''), ib=(b.idNum||'').replace(/\D/g,'');
+  if(ia && ib) return ia===ib;                 // שתי ת.ז -> הכרעה ודאית
+  const ka=_nameKey(a.name), kb=_nameKey(b.name);
+  if(!ka || !kb) return false;
+  if(ka===kb) return true;
+  const d=_lev(ka,kb), len=Math.max(ka.length,kb.length);
+  if(len<=4) return d===0;
+  if(len<=8) return d<=1;
+  return d<=2;
+}
+function findDupGroups(){
+  const groups=[], used=new Set();
+  for(let i=0;i<clients.length;i++){
+    if(used.has(i)) continue;
+    const grp=[i];
+    for(let j=i+1;j<clients.length;j++){
+      if(used.has(j)) continue;
+      if(grp.some(k=>_isDup(clients[k],clients[j]))){ grp.push(j); used.add(j); }
+    }
+    if(grp.length>1){ grp.forEach(k=>used.add(k)); groups.push(grp.map(k=>clients[k])); }
+  }
+  return groups;
+}
+function _richness(c){
+  let s=0;
+  ['phone','email','idNum','pension','premium','salary','renewal','birth','notes'].forEach(f=>{ if(c[f]) s++; });
+  s += (c.products ? c.products.length*2 : 0);
+  return s;
+}
+function mergeGroup(group){
+  const primary = { ...[...group].sort((a,b)=>_richness(b)-_richness(a))[0] };
+  primary.products = [ ...(primary.products||[]) ];
+  const notes = new Set(primary.notes ? [primary.notes] : []);
+  let earliest = primary.createdAt;
+  group.forEach(c=>{
+    if(c.id === primary.id) return;
+    ['phone','email','idNum','pension','premium','salary','source','renewal','birth','type','status'].forEach(f=>{ if(!primary[f] && c[f]) primary[f]=c[f]; });
+    (c.products||[]).forEach(p=>{ if(!primary.products.find(q=>q.type===p.type && q.company===p.company)) primary.products.push(p); });
+    if(c.notes) notes.add(c.notes);
+    if(c.lastContact && (!primary.lastContact || c.lastContact > primary.lastContact)) primary.lastContact=c.lastContact;
+    if(c.createdAt && (!earliest || c.createdAt < earliest)) earliest=c.createdAt;
+  });
+  primary.notes = [...notes].join(' | ');
+  if(earliest) primary.createdAt = earliest;
+  return primary;
+}
+let _dupGroups = [];
+function openMergeTool(){
+  _dupGroups = findDupGroups();
+  const prev = document.getElementById('merge-preview');
+  const btn = document.getElementById('merge-btn');
+  if(!_dupGroups.length){
+    prev.innerHTML = '<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">לא נמצאו כפילויות</div></div>';
+    btn.style.display = 'none';
+  } else {
+    btn.style.display = '';
+    prev.innerHTML = `<div style="padding:10px 18px;font-size:13px;color:var(--yel)">נמצאו ${_dupGroups.length} קבוצות כפילות אפשריות · סמן את אלו לאיחוד</div>` +
+      _dupGroups.map((g,gi)=>`<div style="padding:12px 18px;border-bottom:0.5px solid var(--brd);display:flex;gap:10px;align-items:flex-start">
+        <input type="checkbox" class="merge-chk" data-gi="${gi}" checked style="margin-top:4px;width:18px;height:18px;cursor:pointer;flex-shrink:0">
+        <div style="flex:1">
+          ${g.map(c=>`<div style="font-size:13px;color:var(--txt)">• ${c.name} <span style="color:var(--txt3);font-size:11px">${c.phone||''}${c.idNum?' · '+c.idNum:''}${(c.products&&c.products.length)?' · '+c.products.length+' מוצרים':''}</span></div>`).join('')}
+          <div style="font-size:11px;color:var(--grn);margin-top:4px">→ יאוחדו ל-"${mergeGroup(g).name}" (כל המוצרים וההערות נשמרים)</div>
+        </div>
+      </div>`).join('');
+  }
+  document.getElementById('merge-modal').classList.add('open');
+}
+function confirmMerge(){
+  const checked = [...document.querySelectorAll('.merge-chk:checked')].map(c=>_dupGroups[+c.dataset.gi]);
+  if(!checked.length){ alert('לא נבחרו קבוצות לאיחוד'); return; }
+  const removeIds = new Set(), additions=[];
+  checked.forEach(g=>{ additions.push(mergeGroup(g)); g.forEach(c=>removeIds.add(c.id)); });
+  clients = clients.filter(c=>!removeIds.has(c.id)).concat(additions);
+  save();
+  closeModal('merge-modal');
+  renderClients(); updateCounts(); renderDashboard();
+  alert('✅ אוחדו ' + checked.length + ' קבוצות כפילות');
+}
+
+/* ─────────── חיבור ליומן Google ─────────── */
+function gcalLink(m){
+  const client = clients.find(c => c.id == m.clientId);
+  const title = 'פגישה: ' + (client ? client.name : 'לקוח') + (m.subject ? ' — ' + m.subject : '');
+  const details = [
+    client && client.phone ? 'טלפון: ' + client.phone : '',
+    client && client.email ? 'מייל: ' + client.email : '',
+    m.subject ? 'נושא: ' + m.subject : '',
+    'נוצר מ-רן פיננסים CRM'
+  ].filter(Boolean).join('\n');
+  let dates = '', tz = '';
+  if(m.date){
+    if(m.time){
+      const start = new Date(m.date + 'T' + m.time + ':00');
+      const end = new Date(start.getTime() + 60*60000); // שעה ברירת מחדל
+      const f = dt => dt.getFullYear() + String(dt.getMonth()+1).padStart(2,'0') + String(dt.getDate()).padStart(2,'0') + 'T' + String(dt.getHours()).padStart(2,'0') + String(dt.getMinutes()).padStart(2,'0') + '00';
+      dates = f(start) + '/' + f(end);
+      tz = '&ctz=Asia/Jerusalem';
+    } else {
+      const start = new Date(m.date + 'T00:00:00');
+      const next = new Date(start.getTime() + 24*60*60000);
+      const fd = dt => dt.getFullYear() + String(dt.getMonth()+1).padStart(2,'0') + String(dt.getDate()).padStart(2,'0');
+      dates = fd(start) + '/' + fd(next); // אירוע יום שלם
+    }
+  }
+  let url = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(title);
+  if(dates) url += '&dates=' + dates + tz;
+  if(details) url += '&details=' + encodeURIComponent(details);
+  if(m.location) url += '&location=' + encodeURIComponent(m.location);
+  return url;
+}
+
+/* ─────────── מערכת טיפולים (cases) ─────────── */
+const TREATMENT_TYPES = ['פנסיה','השתלמות','גמל','ריסק','בריאות','פוליסה','ניוד','אחר'];
+const TREATMENT_STAGES = ['פתוח','בטיפול','ממתין','הושלם'];
+const _TYPE_WORDS = ['פנסיה','השתלמות','גמל','ריסק','בריאות','פוליסה','ניוד'];
+let _tidSeq = 0;
+function _newTid(){ return Date.now()*1000 + (_tidSeq++); }
+function _mapTreatType(s){ s=(s||'').trim(); for(const t of _TYPE_WORDS){ if(s.includes(t)) return t; } return 'אחר'; }
+
+function parseNotesToTreatments(notes){
+  if(!notes) return [];
+  const out = [];
+  notes.split('|').forEach(seg => {
+    seg = seg.trim(); if(!seg) return;
+    let type='אחר', detail=seg;
+    const ci = seg.indexOf(':');
+    if(ci > -1){ type=_mapTreatType(seg.slice(0,ci)); detail=seg.slice(ci+1).trim(); }
+    else type=_mapTreatType(seg);
+    const stage = /ממתין/.test(detail) ? 'ממתין' : 'בטיפול';
+    out.push({ id:_newTid(), type, detail, stage, createdAt:new Date().toISOString(), doneAt:null });
+  });
+  return out;
+}
+function migrateTreatments(){
+  let changed = false;
+  clients.forEach(c => { if(c.treatments === undefined){ c.treatments = parseNotesToTreatments(c.notes); changed = true; } });
+  if(changed) save();
+}
+
+function _treatmentRow(cid, t){
+  const done = t.stage === 'הושלם';
+  const stageColor = t.stage==='ממתין' ? 'var(--yel)' : (t.stage==='הושלם' ? 'var(--grn)' : (t.stage==='פתוח' ? 'var(--acc)' : 'var(--txt2)'));
+  return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:0.5px solid rgba(255,255,255,0.05);${done?'opacity:0.55':''}">
+    <button onclick="completeTreatment(${cid},${t.id})" title="${done?'בטל השלמה':'סמן כהושלם'}" style="width:20px;height:20px;border-radius:5px;border:1.5px solid ${done?'var(--grn)':'var(--txt3)'};background:${done?'var(--grn)':'transparent'};color:#fff;cursor:pointer;flex-shrink:0;font-size:11px">${done?'✓':''}</button>
+    <span style="display:inline-block;background:rgba(124,92,200,0.25);color:#c4b5fd;font-size:10px;padding:1px 7px;border-radius:8px;flex-shrink:0">${t.type}</span>
+    <span style="flex:1;font-size:12px;color:var(--txt);${done?'text-decoration:line-through':''}">${t.detail||''}</span>
+    <select onchange="setTreatmentStage(${cid},${t.id},this.value)" class="form-input" style="width:auto;padding:2px 6px;font-size:11px;color:${stageColor}">
+      ${TREATMENT_STAGES.map(s=>'<option'+(t.stage===s?' selected':'')+'>'+s+'</option>').join('')}
+    </select>
+    <button onclick="deleteTreatment(${cid},${t.id})" class="btn btn-r" style="padding:2px 7px;font-size:11px;flex-shrink:0">✕</button>
+  </div>`;
+}
+function renderProfileTreatments(clientId){
+  const host = document.getElementById('profile-treatments'); if(!host) return;
+  const c = clients.find(x => x.id == clientId); if(!c) return;
+  const ts = c.treatments || [];
+  const open = ts.filter(t => t.stage !== 'הושלם');
+  const done = ts.filter(t => t.stage === 'הושלם');
+  let html = '';
+  if(!ts.length) html = '<div style="color:var(--txt3);font-size:12px;text-align:center;padding:8px 0">אין טיפולים. לחץ "+ טיפול".</div>';
+  else {
+    html = open.map(t => _treatmentRow(c.id,t)).join('');
+    if(done.length) html += `<div style="font-size:11px;color:var(--txt3);margin:8px 0 2px">הושלמו (${done.length})</div>` + done.map(t => _treatmentRow(c.id,t)).join('');
+  }
+  html += `<div id="treat-form-${c.id}" style="display:none;margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px">
+    <select id="nt-type-${c.id}" class="form-input" style="margin-bottom:6px">${TREATMENT_TYPES.map(t=>'<option>'+t+'</option>').join('')}</select>
+    <input id="nt-detail-${c.id}" class="form-input" placeholder="מה צריך לעשות? (למשל: שוגר טפסים)" style="margin-bottom:6px">
+    <div style="display:flex;gap:6px"><button class="btn btn-p" style="font-size:12px" onclick="saveNewTreatment(${c.id})">הוסף</button><button class="btn" style="font-size:12px" onclick="document.getElementById('treat-form-${c.id}').style.display='none'">ביטול</button></div>
+  </div>`;
+  host.innerHTML = html;
+}
+function addTreatmentRow(cid){ const f=document.getElementById('treat-form-'+cid); if(f){ f.style.display='block'; const d=document.getElementById('nt-detail-'+cid); if(d) d.focus(); } }
+function saveNewTreatment(cid){
+  const c = clients.find(x => x.id == cid); if(!c) return;
+  if(!c.treatments) c.treatments = [];
+  const type = document.getElementById('nt-type-'+cid).value;
+  const detail = document.getElementById('nt-detail-'+cid).value.trim();
+  if(!detail){ alert('כתוב מה צריך לעשות'); return; }
+  c.treatments.push({ id:_newTid(), type, detail, stage:'בטיפול', createdAt:new Date().toISOString(), doneAt:null });
+  save(); renderProfileTreatments(cid); renderTreatments();
+}
+function setTreatmentStage(cid, tid, stage){
+  const c = clients.find(x => x.id == cid); if(!c) return;
+  const t = (c.treatments||[]).find(x => x.id == tid); if(!t) return;
+  t.stage = stage; t.doneAt = (stage === 'הושלם') ? new Date().toISOString() : null;
+  save(); renderProfileTreatments(cid); renderTreatments();
+}
+function completeTreatment(cid, tid){
+  const c = clients.find(x => x.id == cid); if(!c) return;
+  const t = (c.treatments||[]).find(x => x.id == tid); if(!t) return;
+  if(t.stage === 'הושלם'){ t.stage='בטיפול'; t.doneAt=null; } else { t.stage='הושלם'; t.doneAt=new Date().toISOString(); }
+  save();
+  if(document.getElementById('profile-treatments')) renderProfileTreatments(cid);
+  renderTreatments();
+}
+function deleteTreatment(cid, tid){
+  const c = clients.find(x => x.id == cid); if(!c) return;
+  c.treatments = (c.treatments||[]).filter(x => x.id != tid);
+  save(); renderProfileTreatments(cid); renderTreatments();
+}
+function allOpenTreatments(){
+  const out = [];
+  clients.forEach(c => (c.treatments||[]).forEach(t => { if(t.stage !== 'הושלם') out.push({ c, t }); }));
+  return out;
+}
+function renderTreatments(){
+  const body = document.getElementById('treat-body'); if(!body) return;
+  const open = allOpenTreatments();
+  const cnt = document.getElementById('treat-count'); if(cnt) cnt.textContent = open.length;
+  const byType = {};
+  open.forEach(({t}) => byType[t.type] = (byType[t.type]||0)+1);
+  const bt = document.getElementById('treat-bytype');
+  if(bt) bt.textContent = Object.entries(byType).map(([k,v]) => k+' '+v).join(' · ');
+  if(!open.length){ body.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">אין טיפולים פתוחים</div></div>'; return; }
+  const order = { 'ממתין':0, 'בטיפול':1, 'פתוח':2 };
+  open.sort((a,b) => (order[a.t.stage]??3) - (order[b.t.stage]??3));
+  body.innerHTML = open.slice(0,15).map(({c,t}) => {
+    const stageColor = t.stage==='ממתין' ? 'var(--yel)' : (t.stage==='פתוח' ? 'var(--acc)' : 'var(--txt3)');
+    return `<div class="al-row">
+      <div style="flex:1;cursor:pointer" onclick="showProfile(${c.id})">
+        <div style="font-size:13px;color:var(--txt)"><span style="display:inline-block;background:rgba(124,92,200,0.25);color:#c4b5fd;font-size:10px;padding:1px 7px;border-radius:8px;margin-left:5px">${t.type}</span>${c.name}</div>
+        <div style="font-size:11px;color:var(--txt3)">${t.detail||''} · <span style="color:${stageColor}">${t.stage}</span></div>
+      </div>
+      <button class="btn btn-p" style="padding:4px 9px;font-size:11px" onclick="completeTreatment(${c.id},${t.id})">✓ הושלם</button>
+    </div>`;
+  }).join('') + (open.length>15 ? `<div style="padding:10px;text-align:center;font-size:12px;color:var(--txt3)">...ועוד ${open.length-15}</div>` : '');
+}
+
+/* ─────────── גיבוי אוטומטי ─────────── */
+function _todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function autoSnapshot(){
+  try{
+    const key = 'crm_snap_' + _todayStr();
+    localStorage.setItem(key, JSON.stringify(collectAll()));
+    const snaps = listSnapshots();
+    // שמירת 7 נקודות שחזור אחרונות
+    while(snaps.length > 7){ const oldest = snaps.pop(); localStorage.removeItem(oldest); }
+    renderSnapshots();
+  }catch(e){ /* מכסת אחסון */ }
+}
+function listSnapshots(){
+  return Object.keys(localStorage).filter(k => /^crm_snap_\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+}
+function renderSnapshots(){
+  const sel = document.getElementById('snapshot-select'); if(!sel) return;
+  const snaps = listSnapshots();
+  sel.innerHTML = '<option value="">↺ נקודות שחזור…</option>' + snaps.map(k => {
+    const d = k.replace('crm_snap_','');
+    const label = d === _todayStr() ? 'היום' : d;
+    return `<option value="${k}">${label}</option>`;
+  }).join('');
+}
+function restoreSnapshot(key){
+  try{
+    const raw = localStorage.getItem(key); if(!raw){ alert('הגיבוי לא נמצא'); return; }
+    const d = JSON.parse(raw);
+    const when = key.replace('crm_snap_','');
+    if(!confirm('לשחזר את נקודת השחזור מ-' + (when===_todayStr()?'היום':when) + '?\nזה ידרוס את הנתונים הנוכחיים.')){ document.getElementById('snapshot-select').value=''; return; }
+    applyAll(d); nav('dashboard');
+    alert('✅ שוחזר מ-' + when);
+  }catch(e){ alert('שגיאה בשחזור'); }
+}
+
+function isAutoBackupOn(){ return localStorage.getItem('crm_autodl_enabled') !== '0'; }
+function toggleAutoBackup(on){
+  localStorage.setItem('crm_autodl_enabled', on ? '1' : '0');
+  updateBackupStatus();
+  if(on) maybeAutoBackup();
+}
+function maybeAutoBackup(){
+  try{
+    if(!isAutoBackupOn()) return;
+    if(fileHandle) return;                 // קובץ מסונכרן כבר מכסה גיבוי
+    const today = _todayStr();
+    if(localStorage.getItem('crm_last_autodl') === today) return;
+    const blob = new Blob([JSON.stringify(collectAll(), null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ran-crm-גיבוי-' + today + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    localStorage.setItem('crm_last_autodl', today);
+    updateBackupStatus();
+  }catch(e){ /* ייתכן שהדפדפן חסם — לא קריטי, יש נקודות שחזור */ }
+}
+function updateBackupStatus(){
+  const el = document.getElementById('backup-status'); if(!el) return;
+  const tog = document.getElementById('autobackup-toggle'); if(tog) tog.checked = isAutoBackupOn();
+  if(fileHandle){ el.textContent = '🟢 מסתנכרן לקובץ — גיבוי מובטח'; el.style.color='var(--grn)'; return; }
+  const last = localStorage.getItem('crm_last_autodl');
+  if(last){ el.textContent = 'גיבוי אחרון: ' + (last===_todayStr()?'היום':last); el.style.color='var(--txt3)'; }
+  else { el.textContent = 'טרם בוצע גיבוי קובץ'; el.style.color='var(--yel)'; }
+}
+
+/* ─────────── סנכרון ענן (Firebase) — מחשב ↔ מובייל ─────────── */
+let fbReady = false, fbDoc = null, fbSetDoc = null, fbOnSnapshot = null, fbUnsub = null;
+let _fbPushTimer = null, _fbLastWritten = '';
+const FB_VER = '10.12.2';
+
+function setFbStatus(txt, color){
+  const el = document.getElementById('fb-status');
+  if(el){ el.innerHTML = txt; if(color) el.style.color = color; }
+  const badge = document.getElementById('cloud-badge');
+}
+function openFbModal(){
+  const cfg = localStorage.getItem('fb_config'); if(cfg) document.getElementById('fb-config').value = cfg;
+  const em = localStorage.getItem('fb_email'); if(em) document.getElementById('fb-email').value = em;
+  document.getElementById('fb-modal').classList.add('open');
+  if(fbReady) setFbStatus('🟢 מחובר ומסנכרן', 'var(--grn)');
+}
+
+async function cloudConnect(manual){
+  const cfgText = (document.getElementById('fb-config') ? document.getElementById('fb-config').value.trim() : '') || localStorage.getItem('fb_config') || '';
+  if(!cfgText){ if(manual) setFbStatus('⚠️ הדבק קודם את הגדרות Firebase', 'var(--yel)'); return; }
+  let config;
+  try{
+    let t = cfgText.replace(/^\s*(const|var|let)\s+\w+\s*=\s*/, '').replace(/;\s*$/, '');
+    config = Function('return (' + t + ')')();
+  }catch(e){ setFbStatus('⚠️ ההגדרות לא תקינות — העתק שוב מ-Firebase', 'var(--yel)'); return; }
+
+  try{
+    setFbStatus('⏳ מתחבר...', 'var(--txt2)');
+    const appMod  = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app.js`);
+    const fsMod   = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore.js`);
+    const authMod = await import(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth.js`);
+
+    const app  = appMod.initializeApp(config);
+    const auth = authMod.getAuth(app);
+    const db   = fsMod.getFirestore(app);
+    fbSetDoc = fsMod.setDoc; fbOnSnapshot = fsMod.onSnapshot;
+    try{ await authMod.setPersistence(auth, authMod.browserLocalPersistence); }catch(e){}
+
+    // sign in (or create the account on first use)
+    const email = (document.getElementById('fb-email')||{}).value || localStorage.getItem('fb_email') || '';
+    const pass  = (document.getElementById('fb-pass')||{}).value || '';
+    if(email && pass){
+      try{ await authMod.signInWithEmailAndPassword(auth, email, pass); }
+      catch(e){
+        if(e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential'){
+          try{ await authMod.createUserWithEmailAndPassword(auth, email, pass); }
+          catch(e2){ setFbStatus('⚠️ התחברות נכשלה: ' + e2.code, 'var(--yel)'); return; }
+        } else { setFbStatus('⚠️ התחברות נכשלה: ' + e.code, 'var(--yel)'); return; }
+      }
+    }
+
+    localStorage.setItem('fb_config', cfgText);
+    if(email) localStorage.setItem('fb_email', email);
+
+    authMod.onAuthStateChanged(auth, user => {
+      if(user){
+        fbDoc = fsMod.doc(db, 'crm_users', user.uid);
+        fbReady = true;
+        setFbStatus('🟢 מחובר: ' + (user.email||'') + ' — מסנכרן בזמן אמת', 'var(--grn)');
+        fbStartSync();
+      } else {
+        fbReady = false; setFbStatus('🔴 לא מחובר', 'var(--txt3)');
+      }
+    });
+  }catch(e){
+    setFbStatus('⚠️ שגיאה: ' + (e.message||e) + '<br><span style="font-size:11px">(אם פתחת מקובץ מקומי — Firebase עובד רק מכתובת אינטרנט/GitHub Pages)</span>', 'var(--yel)');
+  }
+}
+
+function fbStartSync(){
+  if(!fbDoc || !fbOnSnapshot) return;
+  if(fbUnsub){ try{ fbUnsub(); }catch(e){} }
+  fbUnsub = fbOnSnapshot(fbDoc, snap => {
+    if(!snap.exists()){ cloudPush(true); return; }   // ענן ריק → דחוף את הנתונים המקומיים
+    const d = snap.data();
+    if(!d || !d.data) return;
+    if(d.data === _fbLastWritten) return;             // הכתיבה שלנו — דלג
+    try{
+      const parsed = JSON.parse(d.data);
+      _fbLastWritten = d.data;
+      applyAll(parsed);
+      if(typeof migrateTreatments === 'function') migrateTreatments();
+      if(currentView === 'dashboard') renderDashboard(); else nav(currentView);
+      setFbStatus('🟢 עודכן מהענן — ' + new Date().toLocaleTimeString('he-IL'), 'var(--grn)');
+    }catch(e){}
+  }, err => setFbStatus('⚠️ ' + err.message, 'var(--yel)'));
+}
+
+function cloudPush(force){
+  if(!fbReady || !fbDoc || !fbSetDoc) return;
+  clearTimeout(_fbPushTimer);
+  _fbPushTimer = setTimeout(async () => {
+    try{
+      const json = JSON.stringify(collectAll());
+      _fbLastWritten = json;
+      await fbSetDoc(fbDoc, { data: json, ts: Date.now(), device: navigator.platform || '' });
+      setFbStatus('🟢 מסונכרן — ' + new Date().toLocaleTimeString('he-IL'), 'var(--grn)');
+    }catch(e){ setFbStatus('⚠️ שגיאת סנכרון: ' + e.message, 'var(--yel)'); }
+  }, force ? 0 : 600);
+}
+
+function cloudDisconnect(){
+  if(fbUnsub){ try{ fbUnsub(); }catch(e){} fbUnsub = null; }
+  fbReady = false; fbDoc = null;
+  localStorage.removeItem('fb_config'); localStorage.removeItem('fb_email');
+  setFbStatus('🔴 נותק. הנתונים המקומיים נשמרו.', 'var(--txt3)');
+}
+
+// auto-reconnect on load if previously configured
+if(localStorage.getItem('fb_config')){ setTimeout(()=>cloudConnect(false), 800); }
+
+// init storage status badge + dashboard widgets on load
+migrateTreatments();
+updateStorageStatus();
+renderSnapshots();
+updateBackupStatus();
+setTimeout(maybeAutoBackup, 1500);
+renderPipeline();
+renderTreatments();
+renderColdList();
+renderNewClients();
+renderBirthdays();
+renderRenewals();
+</script>
+
 </body>
 </html>
