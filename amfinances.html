@@ -462,6 +462,17 @@ select.form-input{cursor:pointer;}
   </div>
 </div>
 
+<!-- MODAL: MEETING DETAIL / CONFIRMATION -->
+<div class="modal-bg" id="meeting-detail-modal">
+  <div class="modal" style="width:420px">
+    <div class="modal-title">
+      <span>פרטי פגישה</span>
+      <button class="modal-close" onclick="closeModal('meeting-detail-modal')">✕</button>
+    </div>
+    <div id="meeting-detail-body" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
 <script>
 window.SEED_CLIENTS = [{"name":"אילן ויצמן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד | השתלמות: שוגר טפסים 21/04 | ריסק: חתם על מינוי סוכן | ריסק: חתם על מינוי סוכן","idNum":"","birth":"","products":[]},{"name":"אושר אוחנה","phone":"","email":"osher1125@gmail.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד | השתלמות: להעביר למור | בריאות: החזר כסף שלחתי לבדיקה של כמה חודשים בכלל | ריסק: ממתין לפוליסה | ריסק: ממתין לפוליסה","idNum":"","birth":"","products":[]},{"name":"רן מסיכה","phone":"0525949449","email":"","type":"שכיר","status":"פעיל","pension":"מגדל","premium":"5000","salary":"250000","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"נחמה אוזנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: צריך להעביר למגדל","idNum":"","birth":"","products":[]},{"name":"שלומי אוזנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: חזר למנורה","idNum":"","birth":"","products":[]},{"name":"אמיר סגוקאר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"אליאור נהרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: , ממתין להפקדה ראשונה | השתלמות: ממתין להפקדה | ריסק: לכל המשפחה מינוי סוכן כלל | ריסק: לכל המשפחה מינוי סוכן כלל","idNum":"","birth":"","products":[]},{"name":"עמית ארוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש פנסיה אישית , הפקדות וניוד | ריסק: צריך השלמות חוסרים 28/4 | ריסק: צריך השלמות חוסרים 28/4","idNum":"","birth":"","products":[]},{"name":"נתנאל דהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש פנסיה אישית , הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"יפית מימון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה קרן מקפת אישית ללא הפקדות, ממתין להפקדה ראשונה מחודש פברואר","idNum":"","birth":"","products":[]},{"name":"אלי מכלוף","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: ניוד 25-6","idNum":"","birth":"","products":[]},{"name":"אלירן פרץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"שמיים שריקי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: ממתין להפקדה ראשונה","idNum":"","birth":"","products":[]},{"name":"נבו בן שטרית","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן ליברפרינד","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נויד","idNum":"","birth":"","products":[]},{"name":"אשר אלמלך","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: אין מספר תז","idNum":"","birth":"","products":[]},{"name":"נבו אדרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"קובי ביטון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: העבר נספח ו״ חודש אפריל","idNum":"","birth":"","products":[]},{"name":"ירון שוורץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש משלימה עם ניוד של 408 שח ואישית ללא הפקדות. לא רואה בקשות ניוד נוספות","idNum":"","birth":"","products":[]},{"name":"ניסים טבקה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"עומרי נעים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית ומשלימה ללא הפקדות, ממתין להפקדה והניוד למשלימה","idNum":"","birth":"","products":[]},{"name":"אוסקר יגאל","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: אין פנסיה","idNum":"","birth":"","products":[]},{"name":"נגב דוידין","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: יש צפי לניוד לאישית 11.6","idNum":"","birth":"","products":[]},{"name":"פאבלו ברדס","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית ומשלימה ללא הפקדות, ממתין להפקדה והניוד למשלימה נדחה, הוא פג תוקף | השתלמות: בדיקה אם הכסף נויד","idNum":"","birth":"","products":[]},{"name":"תומר פיטוסי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: צריך נספח ו״","idNum":"","birth":"","products":[]},{"name":"יעלה תמרי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ברק שמשי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית, יש הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"גל לוי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: נפתחה אישית, יש הפקדות וניוד","idNum":"","birth":"","products":[]},{"name":"שקד טסמה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ערן בוחבוט","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: שוגר טפסים 21-06 | ריסק: חתם על מינוי סוכן | ריסק: חתם על מינוי סוכן","idNum":"","birth":"","products":[]},{"name":"אבירם זרביב","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רעות בן שטרית","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אלישע בר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: טפסים שוגרו 26/06/25","idNum":"","birth":"","products":[]},{"name":"ליאור דדון","phone":"509348128","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"פנסיה: הפקדה של 3000 לחודש | בריאות: שלחתי ביטול ביטוח משכנתא ולבטל את הביטוח של אובדן כשר עבודה | ריסק: צריך להחתים למינוי סוכן | ריסק: צריך להחתים למינוי סוכן","idNum":"","birth":"","products":[]},{"name":"נדב זהמן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אביתר אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"יוסי כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"ליזו כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"יעקב בן הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"חן בן הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אבירן כרמל","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אלי צדיקריו","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"פנינה צדיקריו","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן בן עמי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נאור בוחבוט","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נועם ממן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"עמית הרוש","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אילן עינבר ליברפרינד","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"דודו אמיר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"מיה כהן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"חנניה דרעי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איתי בנישתי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איציק מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"טבקה ניסים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"זיו מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"הדס אמיר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אופיר דרעי","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אורטל אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"איתי אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אימרי אביטן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רעות בר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסתי פריים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אופק עמוס","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"מלי מלול","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"נגב דוידיאן","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"לירן פרץ","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"שמיים","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסתר אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"רון אוחנה","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: ממתין לפוליסה | ריסק: ממתין לפוליסה","idNum":"","birth":"","products":[]},{"name":"לאלישיב חיון","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: מינוי סוכן בכלל | ריסק: מינוי סוכן בכלל","idNum":"","birth":"","products":[]},{"name":"שליו אוסקר","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: צירך הר הביטוח | ריסק: צירך הר הביטוח","idNum":"","birth":"","products":[]},{"name":"רועי בנימין","phone":"","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"","source":"","renewal":"","notes":"ריסק: ביטוח ריסק 1.5 m | ריסק: ביטוח ריסק 1.5 m","idNum":"","birth":"","products":[]},{"name":"אדיר שינקולקר","phone":"0504231565","email":"adir.shinkolker@icl-group.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"20000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אסף  אטיאס","phone":"0508870229","email":"","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"19000","source":"ים המלח","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"אדיר שינקולקר","phone":"504231565","email":"adir.shinkolker@icl-group.com","type":"שכיר","status":"פעיל","pension":"","premium":"","salary":"20000","source":"ייבוא Excel","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"טל מזגאוקר","phone":"0545469565","email":"roymaz4@gmail.com","type":"שכיר","status":"פעיל","pension":"גדל","premium":"2288","salary":"11000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]},{"name":"דוד ניצן","phone":"0527929470","email":"","type":"שכיר","status":"פעיל","pension":"כלל","premium":"4116","salary":"25000","source":"","renewal":"","notes":"","idNum":"","birth":"","products":[]}];
 </script>
@@ -916,6 +927,8 @@ function saveMeeting() {
     date: document.getElementById('m-date').value,
     time: document.getElementById('m-time').value,
     location: document.getElementById('m-location').value,
+    status: 'pending',
+    messageSent: false,
   });
   save();
   closeModal('meeting-modal');
@@ -926,6 +939,76 @@ function saveMeeting() {
 function deleteMeeting(id) {
   meetings = meetings.filter(m => m.id != id);
   save(); renderMeetings(); updateCounts();
+  closeModal('meeting-detail-modal');
+}
+
+// ─── MEETING CONFIRMATION ────────────────────────────────────────────────────
+function meetingStatusMeta(status) {
+  if (status === 'confirmed') return { label: 'מאושר', cls: 'pg' };
+  if (status === 'cancelled') return { label: 'בוטל', cls: 'pr' };
+  return { label: 'ממתין לאישור', cls: 'py' };
+}
+
+function meetingConfirmMessage(m) {
+  const c = clients.find(x => x.id == m.clientId);
+  const name = c ? c.name.split(' ')[0] : '';
+  const dateStr = m.date ? new Date(m.date + 'T00:00:00').toLocaleDateString('he-IL') : '';
+  return `שלום ${name}, קבעתי לנו פגישה${m.subject ? ' בנושא ' + m.subject : ''}${dateStr ? ' בתאריך ' + dateStr : ''}${m.time ? ' בשעה ' + m.time : ''}${m.location ? ' (' + m.location + ')' : ''}.\nתוכל/י לאשר לי את הפגישה? תודה!\nרן מסיכה, רן פיננסים`;
+}
+
+function sendMeetingConfirmation(id) {
+  const m = meetings.find(x => x.id == id);
+  if (!m) return;
+  const c = clients.find(x => x.id == m.clientId);
+  const msg = meetingConfirmMessage(m);
+  if (c && c.phone) {
+    window.open(_waLink(c.phone, msg));
+  } else if (c && c.email) {
+    window.open(`mailto:${c.email}?subject=${encodeURIComponent('אישור פגישה — רן פיננסים')}&body=${encodeURIComponent(msg)}`);
+  } else {
+    alert('אין ללקוח זה טלפון או מייל לשליחת הודעה');
+    return;
+  }
+  m.messageSent = true;
+  save();
+  renderMeetings();
+  if (document.getElementById('meeting-detail-modal').classList.contains('open')) openMeetingDetail(id);
+}
+
+function setMeetingStatus(id, status) {
+  const m = meetings.find(x => x.id == id);
+  if (!m) return;
+  m.status = status;
+  save();
+  renderMeetings();
+  updateCounts();
+  if (document.getElementById('meeting-detail-modal').classList.contains('open')) openMeetingDetail(id);
+  if (status === 'confirmed') window.open(gcalLink(m), '_blank');
+}
+
+function openMeetingDetail(id) {
+  const m = meetings.find(x => x.id == id);
+  if (!m) return;
+  const c = clients.find(x => x.id == m.clientId);
+  const meta = meetingStatusMeta(m.status);
+  const dateStr = m.date ? new Date(m.date + 'T00:00:00').toLocaleDateString('he-IL') : '—';
+  document.getElementById('meeting-detail-body').innerHTML = `
+    <div class="stat-row"><span class="sl">לקוח</span><span class="sv">${c ? c.name : '—'}</span></div>
+    <div class="stat-row"><span class="sl">נושא</span><span class="sv">${m.subject || '—'}</span></div>
+    <div class="stat-row"><span class="sl">תאריך</span><span class="sv">${dateStr}</span></div>
+    <div class="stat-row"><span class="sl">שעה</span><span class="sv">${m.time || '—'}</span></div>
+    <div class="stat-row"><span class="sl">מיקום</span><span class="sv">${m.location || '—'}</span></div>
+    <div class="stat-row"><span class="sl">סטטוס</span><span class="sv"><span class="pill ${meta.cls}">${meta.label}</span>${m.messageSent ? ' <span style="font-size:10px;color:var(--txt3)">· הודעה נשלחה</span>' : ''}</span></div>
+    <div class="form-actions" style="flex-wrap:wrap;justify-content:flex-start">
+      <button class="btn" onclick="sendMeetingConfirmation(${m.id})">💬 שלח הודעה ללקוח</button>
+      <button class="btn btn-g" onclick="setMeetingStatus(${m.id},'confirmed')">✅ אשר פגישה</button>
+      <button class="btn btn-r" onclick="setMeetingStatus(${m.id},'cancelled')">❌ בטל פגישה</button>
+      <a href="${gcalLink(m)}" target="_blank" class="btn btn-p" style="text-decoration:none">📅 העבר ליומן</a>
+      ${c ? `<button class="btn" onclick="closeModal('meeting-detail-modal');showProfile(${c.id})">👤 לפרופיל הלקוח</button>` : ''}
+      <button class="btn btn-r" onclick="deleteMeeting(${m.id})">🗑 מחק</button>
+    </div>
+  `;
+  document.getElementById('meeting-detail-modal').classList.add('open');
 }
 
 // ─── CALENDAR (Google-style) ─────────────────────────────────────────────────
@@ -945,7 +1028,7 @@ function calNav(dir){
   calRef = new Date(calRef); renderMeetings();
 }
 function calDayClick(iso){ openMeetingModal(); const df = document.getElementById('m-date'); if(df) df.value = iso; }
-function meetingClick(id){ const m = meetings.find(x => x.id == id); if(m && m.clientId) showProfile(m.clientId); }
+function meetingClick(id){ openMeetingDetail(id); }
 
 function renderMeetings(){
   const host = document.getElementById('calendar-view');
@@ -984,9 +1067,11 @@ function renderWeek(host){
   host.innerHTML = head + `<div style="display:flex;max-height:600px;overflow-y:auto">${gutter}${cols}</div>`;
 }
 
+const MEET_STATUS_COLOR = { pending: '#f59e0b', confirmed: '#10b981', cancelled: '#ef4444' };
 function renderEventBlock(m){
   const client = clients.find(c => c.id == m.clientId);
   const name = client ? client.name : (m.subject || 'פגישה');
+  const borderColor = MEET_STATUS_COLOR[m.status] || '#a78bfa';
   let top = 6, height = CAL_HH - 6, timeLabel = '';
   if(m.time){
     const [hh,mm] = m.time.split(':').map(Number);
@@ -994,7 +1079,7 @@ function renderEventBlock(m){
     height = CAL_HH - 4;
     timeLabel = m.time + ' ';
   }
-  return `<div onclick="event.stopPropagation();meetingClick(${m.id})" style="position:absolute;top:${top}px;right:3px;left:3px;height:${height}px;background:rgba(124,92,200,0.88);border-right:3px solid #a78bfa;border-radius:5px;padding:3px 6px;overflow:hidden;font-size:11px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3)">
+  return `<div onclick="event.stopPropagation();meetingClick(${m.id})" style="position:absolute;top:${top}px;right:3px;left:3px;height:${height}px;background:rgba(124,92,200,0.88);border-right:3px solid ${borderColor};border-radius:5px;padding:3px 6px;overflow:hidden;font-size:11px;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3)">
     <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
     <div style="font-size:10px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${timeLabel}${m.location||''}</div>
   </div>`;
@@ -1030,16 +1115,19 @@ function renderMeetingsList(list){
     return;
   }
   list.innerHTML = `<table>
-    <tr><th>לקוח</th><th>נושא</th><th>תאריך</th><th>שעה</th><th>מיקום</th><th></th></tr>
+    <tr><th>לקוח</th><th>נושא</th><th>תאריך</th><th>שעה</th><th>מיקום</th><th>סטטוס</th><th></th></tr>
     ${sorted.map(m => {
       const client = clients.find(c => c.id == m.clientId);
+      const meta = meetingStatusMeta(m.status);
       return `<tr>
-        <td><strong style="color:var(--txt)">${client ? client.name : '—'}</strong></td>
-        <td>${m.subject || '—'}</td>
+        <td style="cursor:pointer" onclick="openMeetingDetail(${m.id})"><strong style="color:var(--txt)">${client ? client.name : '—'}</strong></td>
+        <td style="cursor:pointer" onclick="openMeetingDetail(${m.id})">${m.subject || '—'}</td>
         <td>${m.date || '—'}</td>
         <td>${m.time || '—'}</td>
         <td>${m.location || '—'}</td>
+        <td><span class="pill ${meta.cls}">${meta.label}</span></td>
         <td style="white-space:nowrap">
+          <button class="btn" style="padding:3px 8px;font-size:11px" onclick="sendMeetingConfirmation(${m.id})">💬</button>
           <a href="${gcalLink(m)}" target="_blank" class="btn btn-g" style="padding:3px 8px;font-size:11px;text-decoration:none">📅 ליומן</a>
           <button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteMeeting(${m.id})">✕</button>
         </td>
@@ -1946,12 +2034,12 @@ function _daysSince(dateStr){
   const d = new Date(dateStr); if(isNaN(d)) return null;
   return Math.floor((Date.now() - d.getTime())/86400000);
 }
-function _waLink(phone){
+function _waLink(phone, text){
   let n = (phone||'').replace(/\D/g,'');
   if(!n) return '';
   if(n.startsWith('0')) n = '972' + n.slice(1);
   else if(!n.startsWith('972')) n = '972' + n;
-  return 'https://wa.me/' + n;
+  return 'https://wa.me/' + n + (text ? '?text=' + encodeURIComponent(text) : '');
 }
 
 function renderColdList(){
