@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>רן פיננסים — CRM v17</title>
+<title>רן פיננסים — CRM v18</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--dark:#0f1117;--dark2:#161b27;--dark3:#1e2536;--dark4:#252d3d;--acc:#2563eb;--grn:#10b981;--red:#ef4444;--yel:#f59e0b;--txt:#e2e8f0;--txt2:#94a3b8;--txt3:#64748b;--brd:rgba(255,255,255,0.08);--brd2:rgba(255,255,255,0.14);}
@@ -141,7 +142,7 @@ select.form-input{cursor:pointer;}
 <div class="sidebar">
   <div class="logo">
     <div class="logo-ic">AM</div>
-    <div><div class="logo-t">רן פיננסים</div><div class="logo-s">CRM פנסיוני · v17</div></div>
+    <div><div class="logo-t">רן פיננסים</div><div class="logo-s">CRM פנסיוני · v18</div></div>
   </div>
   <div class="nav">
     <div class="nl">ראשי</div>
@@ -349,6 +350,18 @@ select.form-input{cursor:pointer;}
 
     <!-- MEETINGS -->
     <div class="panel" id="p-meetings">
+      <div class="card" id="gcal-card" style="margin-bottom:14px">
+        <div class="ch">
+          <span class="ct">📆 יומן Google (סנכרון אוטומטי)</span>
+          <span class="hs" id="gcal-status" style="margin-right:auto">לא מחובר</span>
+        </div>
+        <div style="padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-p" id="gcal-connect-btn" onclick="connectGoogleCalendar()">🔗 התחבר ליומן Google</button>
+          <button class="btn" id="gcal-refresh-btn" style="display:none" onclick="fetchGoogleEvents()">🔄 רענן אירועים</button>
+          <span style="font-size:11px;color:var(--txt3)">הכפתור הידני "📅 ליומן" ברשימה ממשיך לעבוד גם בלי חיבור זה</span>
+        </div>
+        <div id="gcal-events-list"></div>
+      </div>
       <div class="card">
         <div class="ch" style="flex-wrap:wrap;gap:8px">
           <div class="ca">
@@ -916,6 +929,7 @@ function saveMeeting() {
     date: document.getElementById('m-date').value,
     time: document.getElementById('m-time').value,
     location: document.getElementById('m-location').value,
+    googleEventId: null,
   });
   save();
   closeModal('meeting-modal');
@@ -1041,6 +1055,9 @@ function renderMeetingsList(list){
         <td>${m.location || '—'}</td>
         <td style="white-space:nowrap">
           <a href="${gcalLink(m)}" target="_blank" class="btn btn-g" style="padding:3px 8px;font-size:11px;text-decoration:none">📅 ליומן</a>
+          ${m.googleEventId
+            ? `<span class="pill pg">✓ מסונכרן</span>`
+            : `<button class="btn" style="padding:3px 8px;font-size:11px" onclick="pushMeetingToGoogle(${m.id})">📤 סנכרן</button>`}
           <button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteMeeting(${m.id})">✕</button>
         </td>
       </tr>`;
@@ -2231,6 +2248,127 @@ function gcalLink(m){
   if(m.location) url += '&location=' + encodeURIComponent(m.location);
   return url;
 }
+
+/* ─────────── יומן Google — סנכרון דו-כיווני אמיתי (OAuth) ─────────── */
+const GOOGLE_CLIENT_ID = '336484296233-afiv8c7krhevjhpmfauuvbnqfp3ik8g.apps.googleusercontent.com';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+let gcalTokenClient = null;
+let gcalAccessToken = null;
+let gcalTokenExpiry = 0;
+
+function gcalSetStatus(text, ok){
+  const el = document.getElementById('gcal-status');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = ok ? 'var(--grn)' : 'var(--txt3)';
+}
+
+function initGoogleAuth(){
+  if (typeof google === 'undefined' || !google.accounts){ setTimeout(initGoogleAuth, 500); return; }
+  gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: GCAL_SCOPE,
+    callback: (resp) => {
+      if (resp.error){ gcalSetStatus('שגיאת התחברות: ' + resp.error, false); return; }
+      gcalAccessToken = resp.access_token;
+      gcalTokenExpiry = Date.now() + (resp.expires_in || 3600) * 1000;
+      gcalSetStatus('🟢 מחובר', true);
+      const btn = document.getElementById('gcal-connect-btn');
+      if (btn) btn.textContent = '🔄 התחבר מחדש';
+      const rb = document.getElementById('gcal-refresh-btn');
+      if (rb) rb.style.display = '';
+      fetchGoogleEvents();
+    },
+  });
+}
+
+function connectGoogleCalendar(){
+  if (typeof google === 'undefined' || !google.accounts){ alert('ספריית Google עדיין נטענת, נסה שוב בעוד רגע.'); return; }
+  if (!gcalTokenClient) initGoogleAuth();
+  gcalTokenClient.requestAccessToken({ prompt: gcalAccessToken ? '' : 'consent' });
+}
+
+function gcalEnsureToken(){
+  return gcalAccessToken && Date.now() < gcalTokenExpiry - 30000;
+}
+
+async function fetchGoogleEvents(){
+  if (!gcalEnsureToken()){ alert('יש להתחבר קודם ליומן Google'); return; }
+  const listEl = document.getElementById('gcal-events-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="padding:14px 18px;color:var(--txt3);font-size:12px">טוען אירועים...</div>';
+  try{
+    const timeMin = new Date().toISOString();
+    const timeMax = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime&maxResults=50`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + gcalAccessToken } });
+    if (!res.ok){
+      if (res.status === 401){
+        gcalAccessToken = null;
+        gcalSetStatus('פג תוקף — יש להתחבר שוב', false);
+        const btn = document.getElementById('gcal-connect-btn'); if (btn) btn.textContent = '🔗 התחבר ליומן Google';
+        const rb = document.getElementById('gcal-refresh-btn'); if (rb) rb.style.display = 'none';
+        listEl.innerHTML = '';
+        return;
+      }
+      throw new Error('HTTP ' + res.status);
+    }
+    const data = await res.json();
+    const items = data.items || [];
+    if (!items.length){
+      listEl.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-text">אין אירועים ב-30 הימים הקרובים ביומן</div></div>';
+      return;
+    }
+    listEl.innerHTML = items.map(ev => {
+      const start = ev.start.dateTime || ev.start.date;
+      const d = new Date(start);
+      const dateStr = ev.start.dateTime ? d.toLocaleString('he-IL', {dateStyle:'short', timeStyle:'short'}) : d.toLocaleDateString('he-IL');
+      return `<div class="al-row"><div class="al-ic" style="background:rgba(37,99,235,.12)">📅</div>
+        <div style="flex:1"><div class="al-t">${ev.summary || '(ללא כותרת)'}</div><div class="al-d">${dateStr}${ev.location ? ' · ' + ev.location : ''}</div></div></div>`;
+    }).join('');
+  }catch(e){
+    listEl.innerHTML = '<div style="padding:14px 18px;color:var(--red);font-size:12px">שגיאה בטעינת אירועים: ' + e.message + '</div>';
+  }
+}
+
+async function pushMeetingToGoogle(meetingId){
+  if (!gcalEnsureToken()){
+    if(!confirm('יש להתחבר קודם ליומן Google. להתחבר עכשיו?')) return;
+    connectGoogleCalendar();
+    return;
+  }
+  const m = meetings.find(x => x.id == meetingId);
+  if (!m) return;
+  if (!m.date){ alert('לפגישה הזו אין תאריך מוגדר'); return; }
+  const client = clients.find(c => c.id == m.clientId);
+  const startDateTime = m.time ? `${m.date}T${m.time}:00` : `${m.date}T09:00:00`;
+  const startDate = new Date(startDateTime);
+  const endDate = new Date(startDate.getTime() + 60*60*1000); // ברירת מחדל שעה
+  const event = {
+    summary: (m.subject || 'פגישה') + (client ? ' — ' + client.name : ''),
+    location: m.location || '',
+    description: client ? `לקוח: ${client.name}${client.phone ? ' · ' + client.phone : ''}` : '',
+    start: { dateTime: startDate.toISOString(), timeZone: 'Asia/Jerusalem' },
+    end: { dateTime: endDate.toISOString(), timeZone: 'Asia/Jerusalem' },
+  };
+  try{
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + gcalAccessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const created = await res.json();
+    m.googleEventId = created.id;
+    save();
+    renderMeetings();
+    fetchGoogleEvents();
+  }catch(e){
+    alert('שגיאה בשליחה ליומן Google: ' + e.message);
+  }
+}
+
+initGoogleAuth();
 
 /* ─────────── מערכת טיפולים (cases) ─────────── */
 const TREATMENT_TYPES = ['פנסיה','השתלמות','גמל','ריסק','בריאות','פוליסה','ניוד','אחר'];
