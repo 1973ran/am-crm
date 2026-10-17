@@ -41,7 +41,7 @@
     '#rmai .card.done{opacity:.6}' +
     '#rmai .sug{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}' +
     '#rmai .sug button{background:var(--dark3,#15302d);border:1px solid var(--brd2,#333);color:var(--txt,#e2e8f0);border-radius:16px;padding:6px 10px;font-size:13px;font-family:inherit;cursor:pointer}' +
-    '#rmai .f{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--brd,#222)}' +
+    '#rmai .f{display:flex;gap:6px;align-items:flex-end;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--brd,#222)}' +
     '#rmai textarea{flex:1;resize:none;max-height:120px;min-height:44px;border-radius:12px;border:1px solid var(--brd2,#333);background:var(--dark3,#15302d);color:var(--txt,#e2e8f0);padding:11px 12px;font-size:16px;font-family:inherit}' +
     '#rmai .ib{width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:19px;flex:none;display:flex;align-items:center;justify-content:center}' +
     '#rmai .mic{background:var(--dark4,#1c3d39);color:#fff}#rmai .mic.rec{background:#ef4444;animation:rmaip 1s infinite}' +
@@ -63,14 +63,15 @@
         '<button data-a="clear" title="שיחה חדשה">🗑️</button><button data-a="settings" title="הגדרות">⚙️</button><button data-a="close" title="סגור">✕</button></div>' +
       '<div class="m"></div>' +
       '<div class="sug"></div>' +
-      '<div class="f"><button class="ib mic" data-a="mic" title="דבר">🎤</button>' +
+      '<div class="f"><button class="ib mic" data-a="cam" title="צילום ת.ז / מסמך">📷</button><button class="ib mic" data-a="mic" title="דבר">🎤</button>' +
+        '<input type="file" accept="image/*" style="display:none" class="camin">' +
         '<textarea rows="1" placeholder="שאל או בקש... למשל: תוסיף לקוח חדש"></textarea>' +
         '<button class="ib snd" data-a="send" title="שלח">➤</button></div>' +
     '</div>';
   document.body.appendChild(fab); document.body.appendChild(root);
   var M = root.querySelector('.m'), TA = root.querySelector('textarea'), SUG = root.querySelector('.sug'), MIC = root.querySelector('.mic');
 
-  var SUGGESTIONS = ['מה הטיפולים הפתוחים?', 'למי חסר טלפון?', 'תוסיף לקוח חדש', 'מי הלקוחות החדשים החודש?'];
+  var SUGGESTIONS = ['מה הטיפולים הפתוחים?', 'למי חסר טלפון?', 'תוסיף לקוח חדש', '📷 צלם ת.ז ללקוח'];
   function drawSug() {
     SUG.innerHTML = history.length ? '' : SUGGESTIONS.map(function (s) { return '<button>' + esc(s) + '</button>'; }).join('');
   }
@@ -132,6 +133,9 @@
       '{"type":"open_client","id":<id>}  — כדי להציג כפתור לפתיחת כרטיס לקוח',
       'כללים: לפני add_client בדוק אם כבר קיים לקוח בשם דומה וציין זאת ב-reply. אל תכלול שדות ריקים. טלפון בפורמט 05XXXXXXXX.',
       'אם חסר מידע חיוני (למשל שם) — שאל ב-reply ואל תחזיר action.',
+      'כשמצורפת תמונה של תעודת זהות / ספח / רישיון נהיגה: חלץ שם פרטי ושם משפחה, מספר ת.ז (9 ספרות, השלם 0 בהתחלה אם צריך), תאריך לידה (DD/MM/YYYY), כתובת אם יש. ' +
+      'בדוק אם הלקוח כבר קיים (לפי ת.ז או שם). אם קיים — החזר update_client עם idNum ו-birth בלבד, וכתובת (אם יש) כ-add_note. אם לא — החזר add_client (כתובת בתוך notes).' +
+      'ב-reply סכם מה זיהית וציין אם משהו לא היה קריא. אם רן כתב הוראה נוספת עם התמונה — פעל לפיה.',
       'טיפול פתוח = stage שאינו "הושלם".',
       'שאלות כלליות על פנסיה/ביטוח מותר לענות מהידע שלך, בקצרה.',
       'נתוני הלקוחות (JSON):',
@@ -144,7 +148,11 @@
     var key = ls(KEY_LS);
     var body = {
       systemInstruction: { parts: [{ text: systemPrompt() }] },
-      contents: history.slice(-12).map(function (h) { return { role: h.role, parts: [{ text: h.text }] }; }),
+      contents: history.slice(-12).map(function (h) {
+        var parts = [{ text: h.text }];
+        if (h.img) parts.unshift({ inlineData: { mimeType: 'image/jpeg', data: h.img } });
+        return { role: h.role, parts: parts };
+      }),
       generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
     };
     return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
@@ -153,8 +161,8 @@
       return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
     });
   }
-  function ask(text) {
-    history.push({ role: 'user', text: text });
+  function ask(text, img) {
+    history.push(img ? { role: 'user', text: text, img: img } : { role: 'user', text: text });
     var wait = add('b a', '<span class="dots">חושב</span>');
     var models = ls(MODEL_LS) ? [ls(MODEL_LS)] : DEFAULT_MODELS.slice();
     function tryNext() {
@@ -177,6 +185,7 @@
       var data;
       try { data = JSON.parse(raw); } catch (e) { var m = raw.match(/\{[\s\S]*\}/); try { data = m ? JSON.parse(m[0]) : null; } catch (e2) { data = null; } }
       if (!data) data = { reply: raw || 'לא התקבלה תשובה', actions: [] };
+      history.forEach(function (h) { if (h.img) delete h.img; }); // התמונה נשלחת פעם אחת בלבד
       history.push({ role: 'model', text: raw });
       bubble('a', data.reply || '✓');
       (data.actions || []).forEach(renderAction);
@@ -275,6 +284,33 @@
     try { rec.start(); recOn = true; MIC.classList.add('rec'); } catch (e) { stopMic(); }
   }
 
+  /* ---------- photo (ID card) ---------- */
+  var CAM = root.querySelector('.camin');
+  function shrink(file, cb) {
+    var r = new FileReader();
+    r.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        var max = 1600, w = im.width, h = im.height, s = Math.min(1, max / Math.max(w, h));
+        var cv = document.createElement('canvas'); cv.width = Math.round(w * s); cv.height = Math.round(h * s);
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        cb(cv.toDataURL('image/jpeg', 0.85));
+      };
+      im.onerror = function () { add('b e', 'לא הצלחתי לקרוא את התמונה'); };
+      im.src = r.result;
+    };
+    r.readAsDataURL(file);
+  }
+  CAM.addEventListener('change', function () {
+    var f = CAM.files && CAM.files[0]; CAM.value = ''; if (!f) return;
+    if (!ls(KEY_LS)) { showSettings(); return; }
+    shrink(f, function (dataUrl) {
+      var note = TA.value.trim(); TA.value = ''; SUG.innerHTML = '';
+      var b = add('b u', '<img src="' + dataUrl + '" style="max-width:100%;border-radius:10px;display:block">' + (note ? '<div style="margin-top:6px">' + esc(note) + '</div>' : ''));
+      ask(note || 'זו תמונה של תעודת זהות או מסמך של לקוח. חלץ את הפרטים ועדכן את ה-CRM.', dataUrl.split(',')[1]);
+    });
+  });
+
   function send() {
     var v = TA.value.trim(); if (!v) return;
     if (!ls(KEY_LS)) { showSettings(); return; }
@@ -293,9 +329,10 @@
       else if (a === 'clear') { history = []; pending = {}; M.innerHTML = ''; if (ls(KEY_LS)) welcome(); else showSettings(); }
       else if (a === 'send') send();
       else if (a === 'mic') { recOn ? stopMic() : startMic(); }
+      else if (a === 'cam') { CAM.click(); }
       return;
     }
-    var s = e.target.closest('.sug button'); if (s) { TA.value = s.textContent; send(); }
+    var s = e.target.closest('.sug button'); if (s) { if (s.textContent.indexOf('📷') === 0) { CAM.click(); return; } TA.value = s.textContent; send(); }
   });
   TA.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   TA.addEventListener('input', function () { TA.style.height = 'auto'; TA.style.height = Math.min(TA.scrollHeight, 120) + 'px'; });
