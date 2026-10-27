@@ -26,7 +26,8 @@
     '#rmai .h{display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:calc(12px + env(safe-area-inset-top));border-bottom:1px solid var(--brd,#222);font-weight:700;font-size:16px}' +
     '#rmai .h .t{flex:1}' +
     '#rmai .h button{background:none;border:0;color:var(--txt2,#94a3b8);font-size:20px;cursor:pointer;padding:4px 6px}' +
-    '#rmai .m{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}' +
+    '#rmai .m{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:10px}' +
+    '#rmai .m>*{flex-shrink:0}' +
     '#rmai .b{max-width:88%;padding:10px 12px;border-radius:14px;line-height:1.5;font-size:15px;white-space:pre-wrap;word-break:break-word}' +
     '#rmai .b.u{align-self:flex-start;background:var(--acc,#14b8a6);color:#04201d;border-bottom-right-radius:4px}' +
     '#rmai .b.a{align-self:flex-end;background:var(--dark3,#15302d);border-bottom-left-radius:4px}' +
@@ -42,7 +43,7 @@
     '#rmai .sug{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}' +
     '#rmai .sug button{background:var(--dark3,#15302d);border:1px solid var(--brd2,#333);color:var(--txt,#e2e8f0);border-radius:16px;padding:6px 10px;font-size:13px;font-family:inherit;cursor:pointer}' +
     '#rmai .f{display:flex;gap:6px;align-items:flex-end;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--brd,#222)}' +
-    '#rmai textarea{flex:1;resize:none;max-height:120px;min-height:44px;border-radius:12px;border:1px solid var(--brd2,#333);background:var(--dark3,#15302d);color:var(--txt,#e2e8f0);padding:11px 12px;font-size:16px;font-family:inherit}' +
+    '#rmai textarea{flex:1;min-width:0;resize:none;max-height:120px;min-height:44px;line-height:1.4;border-radius:12px;border:1px solid var(--brd2,#333);background:var(--dark3,#15302d);color:var(--txt,#e2e8f0);padding:11px 12px;font-size:16px;font-family:inherit}' +
     '#rmai .ib{width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;font-size:19px;flex:none;display:flex;align-items:center;justify-content:center}' +
     '#rmai .mic{background:var(--dark4,#1c3d39);color:#fff}#rmai .mic.rec{background:#ef4444;animation:rmaip 1s infinite}' +
     '#rmai .snd{background:var(--acc,#14b8a6);color:#04201d}' +
@@ -65,7 +66,7 @@
       '<div class="sug"></div>' +
       '<div class="f"><button class="ib mic" data-a="cam" title="צילום ת.ז / מסמך">📷</button><button class="ib mic" data-a="mic" title="דבר">🎤</button>' +
         '<input type="file" accept="image/*" style="display:none" class="camin">' +
-        '<textarea rows="1" placeholder="שאל או בקש... למשל: תוסיף לקוח חדש"></textarea>' +
+        '<textarea rows="1" placeholder="שאל או בקש..."></textarea>' +
         '<button class="ib snd" data-a="send" title="שלח">➤</button></div>' +
     '</div>';
   document.body.appendChild(fab); document.body.appendChild(root);
@@ -79,7 +80,13 @@
   function add(cls, html) { var d = document.createElement('div'); d.className = cls; d.innerHTML = html; M.appendChild(d); M.scrollTop = M.scrollHeight; return d; }
   function bubble(role, text) { return add('b ' + role, esc(text)); }
 
-  function open() { root.classList.add('open'); if (!ls(KEY_LS)) showSettings(); else { if (!M.children.length) welcome(); setTimeout(function () { TA.focus(); }, 50); } }
+  function fitView() {
+    var vv = window.visualViewport; if (!vv || !root.classList.contains('open')) return;
+    root.style.top = vv.offsetTop + 'px'; root.style.height = vv.height + 'px'; root.style.bottom = 'auto';
+    M.scrollTop = M.scrollHeight;
+  }
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fitView); visualViewport.addEventListener('scroll', fitView); }
+  function open() { root.classList.add('open'); fitView(); if (!ls(KEY_LS)) showSettings(); else { if (!M.children.length) welcome(); setTimeout(function () { TA.focus(); }, 50); } }
   function close() { root.classList.remove('open'); stopMic(); }
   function welcome() { bubble('a', 'היי רן 👋 אפשר לשאול אותי על הלקוחות, או לבקש להוסיף לקוח או טיפול. אפשר גם ללחוץ על 🎤 ולדבר.'); drawSug(); }
 
@@ -103,8 +110,35 @@
   }
 
   /* ---------- data for the model ---------- */
+  // לקוחות שמוזכרים בשאלה או בשיחה האחרונה (לפי שם, ת.ז או טלפון)
+  function relevantIds() {
+    var txt = history.slice(-6).map(function (h) { return h.text || ''; }).join(' ');
+    var digits = (txt.match(/\d{7,10}/g) || []).map(function (d) { return d.replace(/^0+/, ''); });
+    var ids = {};
+    getClients().forEach(function (c) {
+      var name = norm(c.name), parts = name.split(' ').filter(function (w) { return w.length > 1; });
+      var hit = (name && txt.indexOf(name) >= 0) ||
+        (parts.length > 1 && parts.every(function (w) { return txt.indexOf(w) >= 0; })) ||
+        txt.indexOf(String(c.id)) >= 0 ||
+        digits.some(function (d) { return (c.idNum && String(c.idNum).replace(/\D/g, '').replace(/^0+/, '') === d) || (c.phone && String(c.phone).replace(/\D/g, '').replace(/^0+/, '') === d); });
+      if (!hit && parts.length) { // שם משפחה לבד (למשל "שניידר")
+        var last = parts[parts.length - 1]; if (last.length > 2 && new RegExp('(^|[\\s,.?!])' + last + '($|[\\s,.?!])').test(txt)) hit = true;
+      }
+      if (hit) ids[c.id] = 1;
+    });
+    return ids;
+  }
   function compactClients() {
+    var rel = relevantIds();
     return getClients().map(function (c) {
+      if (!rel[c.id]) { // רשימה מקוצרת: בלי ת.ז, תאריך לידה, שכר והערות
+        var s = { id: c.id, name: c.name };
+        if (c.status) s.status = c.status;
+        if (!c.phone) s.noPhone = 1;
+        var open = (c.treatments || []).filter(function (t) { return t.stage !== 'הושלם'; });
+        if (open.length) s.openTreatments = open.map(function (t) { return { id: t.id, type: t.type, detail: String(t.detail || '').slice(0, 80), stage: t.stage }; });
+        return s;
+      }
       var o = { id: c.id, name: c.name };
       ['phone', 'email', 'idNum', 'birth', 'type', 'status', 'pension', 'premium', 'salary', 'source', 'renewal'].forEach(function (k) { if (c[k]) o[k] = c[k]; });
       if (c.notes) o.notes = String(c.notes).slice(0, 300);
@@ -138,6 +172,8 @@
       'ב-reply סכם מה זיהית וציין אם משהו לא היה קריא. אם רן כתב הוראה נוספת עם התמונה — פעל לפיה.',
       'טיפול פתוח = stage שאינו "הושלם".',
       'שאלות כלליות על פנסיה/ביטוח מותר לענות מהידע שלך, בקצרה.',
+      'חשוב: אתה לא מבצע פעולות בעצמך. כל action מוצג לרן ככרטיס והוא מאשר אותו. לכן לעולם אל תכתוב "הוספתי" / "עדכנתי" — כתוב "הכנתי לאישורך".',
+      'ברשימה: לקוח עם פרטים מלאים = מוזכר בשיחה. לשאר יש רק שם, סטטוס, noPhone (חסר טלפון) וטיפולים פתוחים. אם צריך פרט שלא מופיע — בקש מרן את שם הלקוח.',
       'נתוני הלקוחות (JSON):',
       JSON.stringify(compactClients())
     ].join('\n');
@@ -155,10 +191,24 @@
       }),
       generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
     };
-    return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify(body)
-    }).then(function (r) {
-      return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
+    var payload = JSON.stringify(body);
+    function once() {
+      var ctl = window.AbortController ? new AbortController() : null;
+      var timer = ctl && setTimeout(function () { ctl.abort(); }, 60000);
+      return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: payload, signal: ctl ? ctl.signal : undefined
+      }).then(function (r) {
+        clearTimeout(timer);
+        return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
+      }, function (e) { clearTimeout(timer); throw e; });
+    }
+    // שגיאת רשת ("Load failed") — ניסיון חוזר אחד אחרי 2 שניות
+    return once().catch(function () {
+      return new Promise(function (r) { setTimeout(r, 2000); }).then(once);
+    }).catch(function (e) {
+      throw new Error(e && e.name === 'AbortError'
+        ? 'גוגל לא ענה תוך דקה. נסה שוב.'
+        : 'אין חיבור לגוגל כרגע (בדוק אינטרנט). השאלה לא נשלחה — נסה שוב.');
     });
   }
   function ask(text, img) {
@@ -172,7 +222,8 @@
           if ((res.status === 404 || res.status === 400 && /model/i.test(JSON.stringify(res.j))) && models.length) return tryNext();
           var msg = (res.j && res.j.error && res.j.error.message) || ('שגיאה ' + res.status);
           if (res.status === 400 && /API key/i.test(msg)) msg = 'המפתח לא תקין. לחץ ⚙️ והדבק מפתח חדש.';
-          if (res.status === 429) msg = 'עברת את מכסת השימוש של גוגל לרגע. נסה שוב בעוד דקה.';
+          if (res.status === 429) msg = /day|daily|PerDay/i.test(msg) ? 'נגמרה המכסה היומית החינמית של גוגל. העוזר יחזור לעבוד מחר.' : 'יותר מדי שאלות ברצף לגוגל. חכה דקה ונסה שוב.';
+          if (res.status >= 500) msg = 'השרת של גוגל עמוס כרגע. נסה שוב בעוד רגע.';
           throw new Error(msg);
         }
         if (!ls(MODEL_LS)) ls(MODEL_LS, model);
@@ -190,8 +241,9 @@
       bubble('a', data.reply || '✓');
       (data.actions || []).forEach(renderAction);
     }).catch(function (err) {
-      wait.remove(); history.pop();
-      add('b e', esc(err.message || 'שגיאת תקשורת'));
+      wait.remove(); var last = history.pop();
+      var e = add('b e', esc(err.message || 'שגיאת תקשורת') + '<div style="margin-top:6px"><button class="go" style="border:0;border-radius:8px;padding:6px 12px;font-family:inherit;cursor:pointer">🔄 נסה שוב</button></div>');
+      e.querySelector('button').onclick = function () { e.remove(); ask(last.text, last.img); };
     });
   }
 
