@@ -40,6 +40,8 @@
   </div>
   <button id="go">📞 התחל שיחת ניסיון</button>
   <div class="st" id="st"></div>
+  <div style="height:8px;background:#15302d;border-radius:4px;overflow:hidden" title="עוצמת המיקרופון"><div id="lv" style="height:100%;width:0;background:#10b981;transition:width .1s"></div></div>
+  <div class="st" style="font-size:12px">🎤 הפס הירוק זז כשאתם מדברים = המיקרופון קולט</div>
   <div class="res" id="res"></div>
   <div class="c t" id="tr"></div>
 </div>
@@ -60,6 +62,7 @@ function stop(msg) {
   try { ws && ws.close(); } catch (e) {}
   try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
   try { micCtx && micCtx.close(); } catch (e) {}
+  try { $('lv').style.width = '0'; } catch (e) {}
   if (msg) $('st').textContent = msg;
 }
 function clearPlayback() { sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = []; playAt = 0; }
@@ -84,6 +87,8 @@ $('go').onclick = async () => {
   try { localStorage.setItem('va_token', token); } catch (e) {}
   running = true; $('go').textContent = '⏹️ נתק'; $('go').className = 'stop';
   $('tr').innerHTML = ''; $('res').style.display = 'none'; $('st').textContent = 'בודק את השרת...';
+  playCtx = playCtx || new AudioContext({ sampleRate: 24000 }); playCtx.resume();
+  micCtx = new AudioContext(); micCtx.resume();
   try {
     const chk = await fetch('/api/check', { headers: { Authorization: 'Bearer ' + token } });
     const cj = await chk.json().catch(() => ({}));
@@ -91,18 +96,25 @@ $('go').onclick = async () => {
     if (!chk.ok) return stop('❌ שגיאת שרת ' + chk.status + ': ' + (cj.error || ''));
     if (!cj.model) return stop('❌ Gemini לא זמין: ' + (cj.modelError || 'לא נמצא מודל קולי למפתח הזה'));
     $('st').textContent = 'מתחבר למודל ' + cj.model + '...';
-    playCtx = playCtx || new AudioContext({ sampleRate: 24000 }); await playCtx.resume();
+    await playCtx.resume();
     stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    micCtx = new AudioContext({ sampleRate: 16000 });
-    const code = `class P extends AudioWorkletProcessor{constructor(){super();this.b=[]}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++)this.b.push(c[k]);if(this.b.length>=1600){const o=new Int16Array(this.b.length);for(let k=0;k<o.length;k++){const s=Math.max(-1,Math.min(1,this.b[k]));o[k]=s<0?s*32768:s*32767}this.port.postMessage(o.buffer,[o.buffer]);this.b=[]}}return true}}registerProcessor('p',P)`;
+    if (micCtx.state !== 'running') await micCtx.resume();
+    // worklet: resample from the device rate to 16kHz, send 100ms PCM16 chunks + mic level
+    const code = `class P extends AudioWorkletProcessor{constructor(){super();this.r=sampleRate/16000;this.pos=0;this.prev=0;this.out=[];this.e=0;this.n=0}
+process(i){const c=i[0]&&i[0][0];if(!c)return true;
+for(let k=0;k<c.length;k++){const s=c[k];this.e+=s*s;this.n++;
+while(this.pos<1){this.out.push(this.prev+(s-this.prev)*this.pos);this.pos+=this.r}this.pos-=1;this.prev=s}
+if(this.out.length>=1600){const o=new Int16Array(this.out.length);for(let k=0;k<o.length;k++){const v=Math.max(-1,Math.min(1,this.out[k]));o[k]=v<0?v*32768:v*32767}
+this.port.postMessage({pcm:o.buffer,level:Math.sqrt(this.e/Math.max(1,this.n))},[o.buffer]);this.out=[];this.e=0;this.n=0}return true}}registerProcessor('p',P)`;
     await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'application/javascript' })));
     const src = micCtx.createMediaStreamSource(stream); node = new AudioWorkletNode(micCtx, 'p'); src.connect(node);
+    const mute = micCtx.createGain(); mute.gain.value = 0; node.connect(mute); mute.connect(micCtx.destination); // keeps the graph running in every browser
 
     const d = new Date(); d.setDate(d.getDate() + 1);
     const q = new URLSearchParams({ token, name: $('name').value, gender: $('gender').value, mode: $('mode').value, agent: $('agent').value,
       date: iso(d), time: '10:00', slots: JSON.stringify(demoSlots()) });
     ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/browser?' + q); ws.binaryType = 'arraybuffer';
-    node.port.onmessage = e => { if (ws.readyState === 1) ws.send(e.data); };
+    node.port.onmessage = e => { $('lv').style.width = Math.min(100, Math.round(e.data.level * 400)) + '%'; if (ws.readyState === 1) ws.send(e.data.pcm); };
     ws.onmessage = e => {
       if (typeof e.data !== 'string') return play(e.data);
       const m = JSON.parse(e.data);
