@@ -2,18 +2,20 @@
 // (Twilio phone call or browser test page).
 const { GoogleGenAI, Modality } = require('@google/genai');
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const VOICE = process.env.GEMINI_VOICE || 'Aoede';
 const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+const clients = {};
+const client = v => clients[v] || (clients[v] = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, httpOptions: { apiVersion: v } }));
 
 /* ---------- model auto-detect (model names change often) ---------- */
-let modelPromise;
-function pickModel() {
-  if (process.env.GEMINI_MODEL) return Promise.resolve(process.env.GEMINI_MODEL);
-  if (modelPromise) return modelPromise;
-  modelPromise = fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=' + process.env.GEMINI_API_KEY)
+let listPromise, working = null; // working = { model, apiVersion } that connected successfully
+function listModels() {
+  if (process.env.GEMINI_MODEL) return Promise.resolve([process.env.GEMINI_MODEL]);
+  if (listPromise) return listPromise;
+  listPromise = fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=' + encodeURIComponent(process.env.GEMINI_API_KEY || ''))
     .then(r => r.json())
     .then(j => {
+      if (j.error) throw new Error(j.error.message || 'models list failed');
       const live = (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('bidiGenerateContent'));
       const score = m => {
         const n = m.name;
@@ -22,12 +24,51 @@ function pickModel() {
       };
       live.sort((a, b) => score(b) - score(a));
       if (!live.length) throw new Error('No Live (bidiGenerateContent) model available for this API key');
-      const name = live[0].name.replace(/^models\//, '');
-      console.log('[agent] using model', name, '| candidates:', live.map(m => m.name).join(', '));
-      return name;
+      const names = live.map(m => m.name.replace(/^models\//, ''));
+      console.log('[agent] live model candidates:', names.join(', '));
+      return names;
     })
-    .catch(e => { modelPromise = null; throw e; });
-  return modelPromise;
+    .catch(e => { listPromise = null; throw e; });
+  return listPromise;
+}
+function pickModel() { return working ? Promise.resolve(working.model) : listModels().then(n => n[0]); }
+
+/** Connect to the first (model, apiVersion) that completes setup. Resolves with { session, model }. */
+async function connectLive(config, handlers) {
+  const names = await listModels();
+  const combos = [];
+  if (working) combos.push(working);
+  for (const model of names.slice(0, 6)) for (const apiVersion of ['v1beta', 'v1alpha'])
+    if (!working || working.model !== model || working.apiVersion !== apiVersion) combos.push({ model, apiVersion });
+  const failures = [];
+  for (const combo of combos) {
+    let ready = false, session;
+    try {
+      session = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout')), 12000);
+        let sess;
+        client(combo.apiVersion).live.connect({
+          model: combo.model, config,
+          callbacks: {
+            onmessage: msg => {
+              if (!ready) { if (msg.setupComplete) { ready = true; clearTimeout(timer); if (sess) resolve(sess); } return; }
+              handlers.onmessage(msg);
+            },
+            onerror: e => { if (ready) handlers.onerror(e); else { clearTimeout(timer); reject(new Error((e && e.message) || 'error')); } },
+            onclose: e => { if (ready) handlers.onclose(e); else { clearTimeout(timer); reject(new Error('closed ' + ((e && (e.reason || e.code)) || ''))); } }
+          }
+        }).then(x => { sess = x; if (ready) resolve(x); }, reject);
+      });
+      working = combo;
+      console.log('[agent] connected', combo.model, combo.apiVersion);
+      return { session, model: combo.model };
+    } catch (e) {
+      failures.push(`${combo.model}@${combo.apiVersion}: ${e.message}`);
+      console.warn('[agent] connect failed', combo.model, combo.apiVersion, e.message);
+      if (working && working.model === combo.model && working.apiVersion === combo.apiVersion) working = null;
+    }
+  }
+  throw new Error('לא הצלחתי להתחבר לאף מודל קולי: ' + failures.join(' | '));
 }
 
 /* ---------- prompt ---------- */
@@ -113,7 +154,6 @@ const TOOLS = [{
  * returns { sendAudio(pcm16kBuffer), close() }
  */
 async function startSession({ ctx, record, transport, onUpdate }) {
-  const model = await pickModel();
   const slotOk = (date, time) => !(ctx.slots || []).length || (ctx.slots || []).some(d => d.date === date && d.times.includes(time));
   let closed = false, hangupRequested = false, lastRole = null;
   const say = (role, text) => {
@@ -148,17 +188,15 @@ async function startSession({ ctx, record, transport, onUpdate }) {
     return { id: fc.id, name: fc.name, response };
   }
 
-  const session = await ai.live.connect({
-    model,
-    config: {
+  let session;
+  const conn = await connectLive({
       responseModalities: [Modality.AUDIO],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE } } },
       systemInstruction: buildPrompt(ctx),
       tools: TOOLS,
       inputAudioTranscription: {},
       outputAudioTranscription: {}
-    },
-    callbacks: {
+    }, {
       onmessage: msg => {
         const sc = msg.serverContent;
         if (sc) {
@@ -178,8 +216,9 @@ async function startSession({ ctx, record, transport, onUpdate }) {
       },
       onerror: e => { console.error('[agent] gemini error', e && e.message); record.error = 'gemini: ' + (e && e.message); },
       onclose: e => { if (!closed) { console.log('[agent] gemini closed', e && e.reason); record.error = record.error || (e && e.reason) || ''; transport.hangup(); } }
-    }
   });
+  session = conn.session;
+  const model = conn.model;
 
   // kick off: the model speaks first
   session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: '[השיחה התחברה — הלקוח ענה. פתחי עכשיו בברכה.]' }] }], turnComplete: true });
