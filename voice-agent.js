@@ -1,17 +1,16 @@
-/* רן פיננסים — סוכן שירות לקוחות קולי (ElevenLabs Agents + טלפוניה)
- * מתקשר ללקוחות, קובע פגישות חדשות ומאשר פגישות קיימות בקול טבעי בעברית.
+/* רן פיננסים — סוכנת שירות לקוחות קולית
+ * מתקשרת ללקוחות, קובעת פגישות חדשות ומאשרת פגישות קיימות בעברית טבעית.
+ * השיחות עצמן רצות בשרת הסוכנת (voice-server/: Gemini Live + Twilio).
  * התוצאה של כל שיחה (נקבע / אושר / נדחה / לחזור אליו...) נכתבת אוטומטית ל-CRM.
  */
 (function () {
   if (window.__rmVA) return; window.__rmVA = 1;
 
-  var API = 'https://api.elevenlabs.io/v1';
-  var CFG_LS = 'rm_voice_cfg', CALLS_LS = 'crm_calls';
+  var CFG_LS = 'rm_voice_cfg2', CALLS_LS = 'crm_calls';
   var DEF = {
-    apiKey: '', agentId: '', phoneId: '', trunk: 'twilio',
+    server: '', token: '',
     business: 'רן פיננסים', agentName: 'נועה', owner: 'רן',
-    hours: '09:00-18:00', days: '0,1,2,3,4', slotMin: 60, location: 'במשרד או בזום — לבחירת הלקוח',
-    voiceId: ''
+    hours: '09:00-18:00', days: '0,1,2,3,4', slotMin: 60, location: 'במשרד או בזום — לבחירת הלקוח'
   };
 
   /* ---------- helpers ---------- */
@@ -44,147 +43,55 @@
   }
 
   /* ---------- free slots from CRM meetings ---------- */
-  function freeSlots(maxSlots) {
+  function freeSlots() {
     var c = cfg(), h = String(c.hours).split('-'), sH = parseInt(h[0], 10) || 9, eH = parseInt(h[1], 10) || 18;
     var step = parseInt(c.slotMin, 10) || 60, days = String(c.days).split(',').map(Number);
     var taken = {}; MT().forEach(function (m) { if (m.date && m.time && m.status !== 'cancelled') taken[m.date + ' ' + m.time] = 1; });
     var out = [], d = new Date(); d.setDate(d.getDate() + 1);
-    for (var i = 0; i < 21 && out.length < (maxSlots || 12); i++, d.setDate(d.getDate() + 1)) {
+    for (var i = 0; i < 21 && out.length < 6; i++, d.setDate(d.getDate() + 1)) {
       if (days.indexOf(d.getDay()) < 0) continue;
       var dayIso = iso(d), list = [];
       for (var t = sH * 60; t + step <= eH * 60; t += step) {
         var hm = pad(Math.floor(t / 60)) + ':' + pad(t % 60);
         if (!taken[dayIso + ' ' + hm]) list.push(hm);
       }
-      if (list.length) out.push(heDate(dayIso) + ' (' + dayIso + '): ' + list.join(', '));
-      if (out.length >= 7) break;
+      if (list.length) out.push({ date: dayIso, times: list });
     }
-    return out.join('\n');
+    return out;
   }
 
-  /* ---------- agent prompt ---------- */
-  function buildPrompt() {
-    return [
-      '# מי את',
-      'את {{agent_name}}, נציגת שירות לקוחות של {{business_name}} — סוכנות ביטוח ופנסיה בניהולו של {{owner_name}}.',
-      'את חמה, אדיבה, מקצועית וקלילה — בדיוק כמו נציגת שירות ישראלית מעולה. מדברת עברית טבעית ויומיומית, משפטים קצרים, בלי שפה רובוטית ובלי רשימות.',
-      '',
-      '# מטרת השיחה',
-      'מטרת השיחה הנוכחית: {{call_purpose}}',
-      '- אם המטרה היא "קביעת פגישה": הסבירי בקצרה שרן רוצה לקבוע פגישת סקירה/שירות קצרה ({{meeting_subject}}), והציעי שני מועדים מתוך הרשימה הפנויה. אם אף אחד לא מתאים — שאלי מה נוח ללקוח ובחרי מהרשימה את הקרוב ביותר.',
-      '- אם המטרה היא "אישור פגישה": הזכירי שקבועה פגישה ב-{{meeting_date_he}} בשעה {{meeting_time}} ({{meeting_location}}) ובקשי אישור. אם הלקוח לא יכול — הציעי מועד חלופי מהרשימה הפנויה.',
-      '',
-      '# מועדים פנויים (אסור להציע מועד שלא מופיע כאן)',
-      '{{available_slots}}',
-      'היום: {{today}}.',
-      '',
-      '# כללי שיחה',
-      '- פני ללקוח בשמו הפרטי. אם אינך יודעת את המין — נסחי בלשון ניטרלית ("יהיה נוח?", "מתאים מבחינתך?").',
-      '- שאלה אחת בכל פעם. הקשיבי, אל תקטעי.',
-      '- אמרי תאריכים בצורה טבעית ("ביום שלישי הקרוב, עשרים וחמישה בנובמבר, בעשר בבוקר").',
-      '- לפני סיום — חזרי על המועד שסוכם וקבלי "כן" מפורש.',
-      '- שאלות מקצועיות (תשואות, כיסויים, כספים, המלצות): "זו שאלה מצוינת, רן יעבור על זה איתך בפגישה עצמה." אל תמציאי מידע ואל תיתני ייעוץ.',
-      '- אל תבקשי ואל תקבלי מספר תעודת זהות, כרטיס אשראי או סיסמאות.',
-      '- אם שואלים אם את בוט/מחשב — עני בכנות שאת עוזרת דיגיטלית של המשרד, והמשיכי בנעימות. אף פעם אל תכחישי.',
-      '- אם הלקוח מבקש לא להתקשר אליו יותר — התנצלי, אשרי שזה נרשם וסיימי.',
-      '- אם הלקוח עסוק — שאלי מתי נוח לחזור אליו, וסיימי.',
-      '- אם הגעת לתא קולי — השאירי הודעה קצרה: מי את, שרן ביקש לתאם פגישה ושתחזרו שוב, וסיימי.',
-      '- שיחה קצרה: עד 3 דקות. בסיום — הודי, אחלי יום טוב וסיימי את השיחה.'
-    ].join('\n');
-  }
-
-  var DATA_COLLECTION = {
-    outcome: { type: 'string', description: 'תוצאת השיחה. ערך אחד בלבד באנגלית: scheduled (נקבעה פגישה חדשה), confirmed (הלקוח אישר את הפגישה הקיימת), rescheduled (הפגישה הוזזה למועד חדש), callback (ביקש שנחזור אליו), declined (לא מעוניין בפגישה), do_not_call (ביקש שלא יתקשרו אליו), voicemail (תא קולי), no_answer (לא נענה/נותק לפני שיחה).' },
-    meeting_date: { type: 'string', description: 'תאריך הפגישה שסוכם בפורמט YYYY-MM-DD. ריק אם לא סוכם מועד.' },
-    meeting_time: { type: 'string', description: 'שעת הפגישה שסוכמה בפורמט HH:MM (24 שעות). ריק אם לא סוכם.' },
-    meeting_mode: { type: 'string', description: 'אופן הפגישה שהלקוח בחר: office / zoom / phone / ריק.' },
-    callback_when: { type: 'string', description: 'אם ביקש שנחזור — מתי (טקסט חופשי). אחרת ריק.' },
-    notes: { type: 'string', description: 'סיכום קצר בעברית של בקשות או מידע חשוב שהלקוח אמר (עד 2 משפטים).' }
-  };
-
-  /* ---------- API ---------- */
+  /* ---------- server API ---------- */
   function api(path, opt) {
     var c = cfg(); opt = opt || {};
-    return fetch(API + path, {
+    var base = String(c.server || '').replace(/\/$/, '');
+    if (!base) return Promise.reject(new Error('לא הוגדרה כתובת שרת הסוכנת'));
+    return fetch(base + path, {
       method: opt.method || 'GET',
-      headers: { 'xi-api-key': c.apiKey, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + c.token, 'Content-Type': 'application/json' },
       body: opt.body ? JSON.stringify(opt.body) : undefined
     }).then(function (r) {
       return r.text().then(function (t) {
-        var j; try { j = JSON.parse(t); } catch (e) { j = { raw: t }; }
-        if (!r.ok) { var msg = (j.detail && (j.detail.message || (typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail)))) || t || r.status; throw new Error('ElevenLabs ' + r.status + ': ' + msg); }
+        var j; try { j = JSON.parse(t); } catch (e) { j = { error: t }; }
+        if (!r.ok) throw new Error(j.error || ('שגיאת שרת ' + r.status));
         return j;
       });
-    }, function (e) { throw new Error('אין חיבור ל-ElevenLabs (' + e.message + ')'); });
-  }
-
-  function placeholders() {
-    return { agent_name: 'נועה', business_name: 'רן פיננסים', owner_name: 'רן', client_name: 'לקוח', call_purpose: 'קביעת פגישה',
-      meeting_subject: 'סקירה שנתית', meeting_date_he: '', meeting_date: '', meeting_time: '', meeting_location: '',
-      available_slots: '', today: '', first_message: 'שלום, מדברת נועה מרן פיננסים.' };
-  }
-
-  function createAgent() {
-    var c = cfg();
-    var body = {
-      name: c.business + ' — שירות לקוחות קולי',
-      conversation_config: {
-        agent: {
-          first_message: '{{first_message}}',
-          language: 'he',
-          dynamic_variables: { dynamic_variable_placeholders: placeholders() },
-          prompt: {
-            prompt: buildPrompt(), llm: 'gemini-2.5-flash', temperature: 0.4,
-            built_in_tools: {
-              end_call: { name: 'end_call', description: 'סיום השיחה אחרי פרידה, בקשה לא להתקשר, או השארת הודעה בתא קולי.', params: { system_tool_type: 'end_call' } },
-              voicemail_detection: { name: 'voicemail_detection', description: 'זיהוי תא קולי והשארת הודעה קצרה.', params: { system_tool_type: 'voicemail_detection' } }
-            }
-          }
-        },
-        tts: c.voiceId ? { voice_id: c.voiceId, model_id: 'eleven_v3_conversational' } : { model_id: 'eleven_v3_conversational' },
-        conversation: { max_duration_seconds: 300 }
-      },
-      platform_settings: { data_collection: DATA_COLLECTION }
-    };
-    function tryCreate(b) { return api('/convai/agents/create', { method: 'POST', body: b }); }
-    return tryCreate(body).catch(function (e) {
-      // fallback: drop optional tools and retry once (keep v3 — Flash models don't speak Hebrew)
-      delete body.conversation_config.agent.prompt.built_in_tools;
-      return tryCreate(body).catch(function () { throw new Error(e.message + ' — אפשר ליצור את הסוכנת ידנית בדשבורד (שפה: עברית, מודל קול: Eleven v3 / v4) עם "העתק פרומפט"'); });
-    }).then(function (j) { var cc = cfg(); cc.agentId = j.agent_id; setCfg(cc); return j.agent_id; });
-  }
-
-  function vars(client, mode, meeting) {
-    var c = cfg(), first = (client.name || '').trim().split(/\s+/)[0] || '';
-    var d = new Date();
-    var v = {
-      agent_name: c.agentName, business_name: c.business, owner_name: c.owner, client_name: first,
-      call_purpose: mode === 'confirm' ? 'אישור פגישה' : 'קביעת פגישה',
-      meeting_subject: (meeting && meeting.subject) || 'סקירה שנתית של הפנסיה והביטוחים',
-      meeting_date: (meeting && meeting.date) || '', meeting_date_he: meeting ? heDate(meeting.date) : '',
-      meeting_time: (meeting && meeting.time) || '', meeting_location: (meeting && meeting.location) || c.location,
-      available_slots: freeSlots() || 'אין מועדים פנויים — בקשי מהלקוח מועד נוח ואמרי שרן יחזור לאשר.',
-      today: 'יום ' + DAYS[d.getDay()] + ' ' + iso(d)
-    };
-    v.first_message = mode === 'confirm'
-      ? 'שלום ' + first + ', מדברת ' + c.agentName + ' מ' + c.business + '. אני מתקשרת לגבי הפגישה שלך עם ' + c.owner + ' ב' + v.meeting_date_he + ' — יש לך רגע?'
-      : 'שלום ' + first + ', מדברת ' + c.agentName + ' מ' + c.business + ', המשרד של ' + c.owner + '. יש לך דקה?';
-    return v;
+    }, function () { throw new Error('אין חיבור לשרת הסוכנת (אם השרת בחינמי ב-Render — הוא מתעורר תוך דקה, נסו שוב)'); });
   }
 
   function startCall(client, mode, meeting) {
-    var c = cfg(), to = e164(client.phone);
-    if (!c.apiKey || !c.agentId || !c.phoneId) return Promise.reject(new Error('צריך להשלים הגדרות: מפתח API, מזהה סוכן ומזהה מספר טלפון'));
-    if (!to) return Promise.reject(new Error('אין מספר טלפון תקין ל' + client.name));
-    if (client.doNotCall) return Promise.reject(new Error(client.name + ' ביקש/ה לא להתקשר אליו/ה'));
-    var path = c.trunk === 'sip' ? '/convai/sip-trunk/outbound-call' : '/convai/twilio/outbound-call';
-    return api(path, { method: 'POST', body: {
-      agent_id: c.agentId, agent_phone_number_id: c.phoneId, to_number: to,
-      conversation_initiation_client_data: { dynamic_variables: vars(client, mode, meeting) }
+    var c = cfg();
+    if (!c.server || !c.token) return Promise.reject(new Error('צריך להגדיר כתובת שרת וקוד גישה'));
+    if (!e164(client.phone)) return Promise.reject(new Error('אין מספר טלפון תקין ל' + client.name));
+    if (client.doNotCall) return Promise.reject(new Error(client.name + ' ביקש/ה לא להתקשר'));
+    return api('/api/call', { method: 'POST', body: {
+      mode: mode,
+      client: { name: client.name, phone: client.phone, gender: client.gender || '' },
+      meeting: meeting ? { date: meeting.date, time: meeting.time, subject: meeting.subject, location: meeting.location } : null,
+      settings: { agentName: c.agentName, business: c.business, owner: c.owner, location: c.location },
+      slots: freeSlots()
     } }).then(function (j) {
-      if (j.success === false) throw new Error(j.message || 'השיחה לא יצאה');
-      var rec = { id: Date.now(), convId: j.conversation_id, clientId: client.id, mode: mode, meetingId: meeting ? meeting.id : null,
-        to: to, at: new Date().toISOString(), status: 'calling' };
+      var rec = { id: Date.now(), callId: j.id, clientId: client.id, mode: mode, meetingId: meeting ? meeting.id : null,
+        to: e164(client.phone), at: new Date().toISOString(), status: 'calling' };
       var a = calls(); a.push(rec); setCalls(a); draw();
       poll(rec.id);
       return rec;
@@ -198,31 +105,29 @@
     var tries = 0;
     (function tick() {
       var rec = calls().filter(function (r) { return r.id === recId; })[0];
-      if (!rec || !rec.convId || rec.status === 'done' || rec.status === 'failed') { delete polling[recId]; return; }
-      api('/convai/conversations/' + rec.convId).then(function (j) {
-        if (j.status === 'done' || j.status === 'failed') { applyResult(recId, j); delete polling[recId]; if (queueWaiting === recId) nextInQueue(); }
-        else { updRec(recId, { status: j.status === 'in-progress' ? 'talking' : 'calling' }); again(); }
+      if (!rec || !rec.callId || rec.status === 'done' || rec.status === 'failed') { delete polling[recId]; return; }
+      api('/api/calls/' + rec.callId).then(function (j) {
+        if (j.status === 'done') { applyResult(recId, j); delete polling[recId]; if (queueWaiting === recId) nextInQueue(); }
+        else { updRec(recId, { status: j.status === 'talking' ? 'talking' : 'calling' }); again(); }
       }).catch(again);
-      function again() { if (++tries > 120) { delete polling[recId]; updRec(recId, { status: 'failed', error: 'timeout' }); if (queueWaiting === recId) nextInQueue(); return; } setTimeout(tick, 6000); }
+      function again() { if (++tries > 150) { delete polling[recId]; updRec(recId, { status: 'failed', error: 'timeout' }); if (queueWaiting === recId) nextInQueue(); return; } setTimeout(tick, 4000); }
     })();
   }
   function updRec(id, patch) { var a = calls(); a.forEach(function (r) { if (r.id === id) for (var k in patch) r[k] = patch[k]; }); setCalls(a); draw(); }
 
-  function dc(j, k) { var r = j.analysis && j.analysis.data_collection_results && j.analysis.data_collection_results[k]; var v = r && (r.value != null ? r.value : r); return v == null || typeof v === 'object' ? '' : String(v).trim(); }
-
   var OUT = {
     scheduled: ['✅ נקבעה פגישה', '#10b981'], confirmed: ['✅ אישר/ה פגישה', '#10b981'], rescheduled: ['🔄 הוזזה פגישה', '#14b8a6'],
     callback: ['⏰ לחזור אליו/ה', '#f59e0b'], declined: ['✋ לא מעוניין/ת', '#94a3b8'], do_not_call: ['⛔ לא להתקשר', '#ef4444'],
-    voicemail: ['📭 תא קולי', '#94a3b8'], no_answer: ['📵 לא ענה/תה', '#94a3b8'], failed: ['⚠️ נכשל', '#ef4444']
+    voicemail: ['📭 תא קולי', '#94a3b8'], no_answer: ['📵 לא ענה/תה', '#94a3b8'], unknown: ['❔ ללא תוצאה', '#94a3b8'], failed: ['⚠️ נכשל', '#ef4444']
   };
 
   function applyResult(recId, j) {
     var rec = calls().filter(function (r) { return r.id === recId; })[0]; if (!rec) return;
-    var outcome = (dc(j, 'outcome') || (j.status === 'failed' ? 'no_answer' : '')).toLowerCase().replace(/[^a-z_]/g, '');
-    var date = dc(j, 'meeting_date'), time = dc(j, 'meeting_time'), notes = dc(j, 'notes'), cb = dc(j, 'callback_when'), modeSel = dc(j, 'meeting_mode');
+    var outcome = String(j.outcome || 'no_answer');
+    var date = j.date || '', time = j.time || '', notes = j.notes || '', cb = j.callback_when || '', modeSel = j.meeting_mode || '';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = ''; if (!/^\d{1,2}:\d{2}$/.test(time)) time = ''; else time = time.length === 4 ? '0' + time : time;
-    var summary = (j.analysis && j.analysis.transcript_summary) || '';
-    var transcript = (j.transcript || []).map(function (t) { return (t.role === 'agent' ? cfg().agentName : 'לקוח') + ': ' + (t.message || ''); }).filter(function (s) { return !/: $/.test(s); }).join('\n');
+    var summary = j.error ? 'שגיאה: ' + j.error : '';
+    var transcript = (j.transcript || []).map(function (t) { return (t.role === 'agent' ? cfg().agentName : 'לקוח') + ': ' + (t.text || '').trim(); }).join('\n');
     var cl = C().filter(function (x) { return x.id == rec.clientId; })[0];
     var loc = modeSel === 'zoom' ? 'זום' : modeSel === 'phone' ? 'טלפונית' : modeSel === 'office' ? 'במשרד' : '';
     var mt = rec.meetingId ? MT().filter(function (m) { return m.id == rec.meetingId; })[0] : null;
@@ -253,8 +158,8 @@
       }
     }
     persist();
-    updRec(recId, { status: j.status === 'failed' ? 'failed' : 'done', outcome: outcome || 'unknown', date: date, time: time, notes: notes,
-      callback: cb, summary: summary, transcript: transcript.slice(0, 6000), duration: j.metadata && j.metadata.call_duration_secs, meetingId: rec.meetingId });
+    updRec(recId, { status: outcome === 'failed' ? 'failed' : 'done', outcome: outcome, date: date, time: time, notes: notes,
+      callback: cb, summary: summary, transcript: transcript.slice(0, 6000), duration: j.duration, meetingId: rec.meetingId });
     toast((cl ? cl.name + ': ' : '') + (OUT[outcome] ? OUT[outcome][0] : 'השיחה הסתיימה'));
   }
 
@@ -308,7 +213,7 @@
   var tt; function toast(m, bad) { toastEl.textContent = m; toastEl.style.borderColor = bad ? '#ef4444' : '#14b8a6'; toastEl.style.display = 'block'; clearTimeout(tt); tt = setTimeout(function () { toastEl.style.display = 'none'; }, 4500); }
 
   function open(t) { if (t) tab = t; if (!ready()) tab = 'settings'; root.classList.add('open'); draw(); }
-  function ready() { var c = cfg(); return c.apiKey && c.agentId && c.phoneId; }
+  function ready() { var c = cfg(); return c.server && c.token; }
   function lastCall(clientId) { var a = calls().filter(function (r) { return r.clientId == clientId; }); return a[a.length - 1]; }
   function pill(o) { var x = OUT[o]; return x ? '<span class="pl" style="background:' + x[1] + '">' + x[0] + '</span>' : ''; }
   function stLabel(r) { return r.status === 'calling' ? '<span class="pl" style="background:#f59e0b">📲 מחייג...</span>' : r.status === 'talking' ? '<span class="pl" style="background:#14b8a6">🗣️ בשיחה</span>' : pill(r.outcome || (r.status === 'failed' ? 'failed' : '')); }
@@ -371,23 +276,19 @@
     var c = cfg();
     function f(k, label, ph, ltr, type) { return '<label>' + label + '</label><input data-k="' + k + '" ' + (type ? 'type="' + type + '" ' : '') + 'class="' + (ltr ? 'ltr' : '') + '" placeholder="' + esc(ph || '') + '" value="' + esc(c[k]) + '">'; }
     BD.innerHTML =
-      '<div class="bx"><b>איך זה עובד?</b><br>הסוכנת הקולית רצה על <b>ElevenLabs Agents</b> — קול עברי טבעי ושיחה בזמן אמת. השיחות יוצאות דרך מספר טלפון שמחובר ל-ElevenLabs (Twilio או SIP של ספק ישראלי). ' +
-      'כל התוצאות (פגישה שנקבעה/אושרה, בקשה לחזור, "לא להתקשר") נכתבות אוטומטית ל-CRM.</div>' +
-      '<div class="bx"><b>שלב 1 — חשבון ומפתח</b><br>1. פתחו חשבון ב-<a href="https://elevenlabs.io/app/agents" target="_blank" style="color:var(--acc,#14b8a6)">elevenlabs.io</a> (מומלץ מנוי Creator ומעלה).<br>2. Profile → API Keys → צרו מפתח עם הרשאות ElevenAgents.</div>' +
-      f('apiKey', 'מפתח API של ElevenLabs', 'sk_...', 1, 'password') +
-      '<div class="bx"><b>שלב 2 — פרטי הסוכנת</b></div>' +
+      '<div class="bx"><b>איך זה עובד?</b><br>הסוכנת מדברת עם הלקוח דרך <b>Gemini Live</b> של גוגל — מודל שמדבר עברית בעצמו (לא מקריא טקסט), ולכן פונה נכון בזכר/נקבה. ' +
+      'השיחות יוצאות דרך <b>Twilio</b> מ"שרת הסוכנת" — שרת קטן שמקימים פעם אחת (הוראות בקובץ voice-server/README.md). כל התוצאות נכתבות אוטומטית ל-CRM.</div>' +
+      '<div class="bx"><b>חיבור לשרת הסוכנת</b></div>' +
+      f('server', 'כתובת השרת', 'https://ran-voice-agent.onrender.com', 1) +
+      f('token', 'קוד גישה (API_TOKEN)', '', 1, 'password') +
+      '<div class="row"><button class="btn2 g" data-a="check">🔌 בדוק חיבור</button><button class="btn2 g" data-a="voiceTest">🎙️ דברו איתה בדפדפן</button></div>' +
+      '<div class="bx"><b>פרטי הסוכנת והיומן</b></div>' +
       '<div class="row"><div>' + f('agentName', 'שם הנציגה', 'נועה') + '</div><div>' + f('business', 'שם העסק', 'רן פיננסים') + '</div><div>' + f('owner', 'שם הסוכן', 'רן') + '</div></div>' +
       '<div class="row"><div>' + f('hours', 'שעות פגישות', '09:00-18:00', 1) + '</div><div>' + f('slotMin', 'אורך פגישה (דק׳)', '60', 1) + '</div></div>' +
       f('days', 'ימי פגישות (0=ראשון ... 4=חמישי)', '0,1,2,3,4', 1) +
-      f('location', 'מיקום ברירת מחדל', 'במשרד או בזום') +
-      f('voiceId', 'Voice ID (אופציונלי — קול עברי מספריית הקולות; מודל הקול חייב להיות Eleven v3 או v4)', 'ריק = ברירת מחדל', 1) +
-      '<div class="row"><button class="btn2" data-a="create">✨ צור את הסוכנת אוטומטית</button><button class="btn2 g" data-a="copyPrompt">📋 העתק פרומפט</button></div>' +
-      f('agentId', 'Agent ID (נמלא אוטומטית, או הדביקו מהדשבורד)', 'agent_...', 1) +
-      '<div class="bx"><b>שלב 3 — מספר טלפון</b><br>ב-ElevenLabs: Agents → Phone Numbers → Import. <br>• <b>Twilio</b> — מהיר להתחלה. <br>• <b>SIP Trunk</b> — מומלץ לישראל: מספר ישראלי (03/072) מספק כמו 019 / Voicenter / Cellcom Business, כך שהלקוח רואה מספר מקומי ועונה יותר.<br>שייכו את המספר לסוכנת והעתיקו את ה-Phone Number ID.</div>' +
-      '<label>סוג חיבור</label><select data-k="trunk"><option value="twilio"' + (c.trunk === 'twilio' ? ' selected' : '') + '>Twilio</option><option value="sip"' + (c.trunk === 'sip' ? ' selected' : '') + '>SIP Trunk (ספק ישראלי)</option></select>' +
-      f('phoneId', 'Phone Number ID', 'phnum_...', 1) +
-      '<div class="row"><button class="btn2" data-a="saveCfg">💾 שמור</button><button class="btn2 g" data-a="test">🧪 שיחת ניסיון אליי</button></div>' +
-      '<div class="wr">⚖️ <b>חשוב לדעת:</b> התקשרו רק ללקוחות קיימים שנתנו את מספרם. שיחות שיווקיות אוטומטיות ללא הסכמה אסורות לפי חוק התקשורת (סעיף 30א). הסוכנת מוגדרת לא להכחיש שהיא עוזרת דיגיטלית, ולסמן "לא להתקשר" כשמבקשים. המפתח נשמר רק במכשיר הזה.</div>';
+      f('location', 'אופן הפגישה', 'במשרד או בזום') +
+      '<div class="row"><button class="btn2" data-a="saveCfg">💾 שמור</button><button class="btn2 g" data-a="test">📲 שיחת ניסיון לטלפון שלי</button></div>' +
+      '<div class="wr">⚖️ <b>חשוב לדעת:</b> התקשרו רק ללקוחות קיימים. שיחות שיווקיות אוטומטיות ללא הסכמה אסורות לפי חוק התקשורת (סעיף 30א). הסוכנת לא מכחישה שהיא עוזרת דיגיטלית, ומסמנת "לא להתקשר" כשמבקשים. קוד הגישה נשמר רק במכשיר הזה.</div>';
   }
 
   function readCfgForm() { var c = cfg(); [].forEach.call(BD.querySelectorAll('[data-k]'), function (el) { c[el.getAttribute('data-k')] = el.value.trim(); }); setCfg(c); return c; }
@@ -399,18 +300,16 @@
     var a = t.getAttribute('data-a'), id = t.getAttribute('data-id');
     if (a === 'close') root.classList.remove('open');
     else if (a === 'saveCfg') { readCfgForm(); toast('ההגדרות נשמרו'); }
-    else if (a === 'create') {
-      var c = readCfgForm(); if (!c.apiKey) return toast('הזינו קודם מפתח API', 1);
-      t.disabled = true; t.textContent = 'יוצר...';
-      createAgent().then(function (aid) { toast('הסוכנת נוצרה ✓ ' + aid); draw(); }).catch(function (e) { toast(e.message, 1); t.disabled = false; t.textContent = '✨ צור את הסוכנת אוטומטית'; });
+    else if (a === 'check') {
+      readCfgForm(); t.disabled = true;
+      api('/api/check').then(function (j) {
+        toast(j.model ? ('✓ מחובר · מודל: ' + j.model + (j.twilio ? ' · Twilio ✓' : ' · Twilio לא מוגדר')) : ('השרת עובד אבל Gemini לא: ' + j.modelError), !j.model);
+      }).catch(function (e) { toast(e.message, 1); }).then(function () { t.disabled = false; });
     }
-    else if (a === 'copyPrompt') {
-      var txt = buildPrompt() + '\n\n---\nהודעת פתיחה: {{first_message}}\nData collection: ' + JSON.stringify(DATA_COLLECTION, null, 1);
-      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { toast('הפרומפט הועתק'); }, function () { prompt('העתיקו:', txt); });
-    }
+    else if (a === 'voiceTest') { var c0 = readCfgForm(); if (!c0.server) return toast('הזינו כתובת שרת', 1); window.open(c0.server.replace(/\/$/, '') + '/test', '_blank'); }
     else if (a === 'test') {
       readCfgForm(); var ph = window.prompt('לאיזה מספר להתקשר לניסיון?', ''); if (!ph) return;
-      startCall({ id: 'test', name: cfg().owner, phone: ph }, 'schedule', null).then(function () { toast('מחייג... ענו לטלפון 📲'); tab = 'log'; draw(); }).catch(function (e) { toast(e.message, 1); });
+      startCall({ id: 'test', name: cfg().owner, phone: ph, gender: 'male' }, 'schedule', null).then(function () { toast('מחייג... ענו לטלפון 📲'); tab = 'log'; draw(); }).catch(function (e) { toast(e.message, 1); });
     }
     else if (a === 'confirm') { var m = MT().filter(function (x) { return x.id == id; })[0]; var cl = m && C().filter(function (x) { return x.id == m.clientId; })[0]; if (cl) enqueue([{ client: cl, mode: 'confirm', meeting: m }]); toast('מחייג ל' + (cl ? cl.name : '') + '...'); }
     else if (a === 'confirmTomorrow') {

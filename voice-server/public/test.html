@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>בדיקת סוכנת קולית</title>
+<style>
+  :root { --bg:#0b1a19; --card:#0f2321; --brd:#24403c; --txt:#e2e8f0; --txt2:#94a3b8; --acc:#14b8a6; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif; padding:16px; }
+  .w { max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:12px }
+  h1 { font-size:20px; margin:4px 0 }
+  .c { background:var(--card); border:1px solid var(--brd); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px }
+  label { font-size:12px; color:var(--txt2) }
+  input, select { width:100%; border-radius:10px; border:1px solid var(--brd); background:#15302d; color:var(--txt); padding:10px; font-size:16px; font-family:inherit }
+  .row { display:flex; gap:8px } .row > div { flex:1 }
+  button { border:0; border-radius:12px; padding:14px; font-size:17px; font-weight:700; font-family:inherit; cursor:pointer; background:var(--acc); color:#04201d }
+  button.stop { background:#ef4444; color:#fff }
+  .st { font-size:14px; color:var(--txt2) }
+  .t { display:flex; flex-direction:column; gap:6px; max-height:45vh; overflow:auto }
+  .b { padding:8px 11px; border-radius:12px; font-size:15px; line-height:1.5; max-width:88% }
+  .b.agent { align-self:flex-end; background:#1c3d39 } .b.client { align-self:flex-start; background:var(--acc); color:#04201d }
+  .res { font-size:14px; background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.4); border-radius:10px; padding:8px 10px; display:none }
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>🎧 בדיקת הסוכנת הקולית</h1>
+  <div class="st">מדברים עם הסוכנת דרך המיקרופון, בדיוק כמו שהלקוח ישמע אותה בטלפון. כך אפשר לבדוק את העברית ואת הפנייה בזכר/נקבה.</div>
+  <div class="c">
+    <label>קוד גישה לשרת (API_TOKEN)</label><input id="token" type="password" autocomplete="off">
+    <div class="row">
+      <div><label>שם הלקוח (שאני משחק)</label><input id="name" value="רן מסיקה"></div>
+      <div><label>מין</label><select id="gender"><option value="">לא ידוע (שתנחש)</option><option value="male">זכר</option><option value="female">נקבה</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>סוג שיחה</label><select id="mode"><option value="schedule">קביעת פגישה</option><option value="confirm">אישור פגישה של מחר</option></select></div>
+      <div><label>שם הנציגה</label><input id="agent" value="נועה"></div>
+    </div>
+  </div>
+  <button id="go">📞 התחל שיחת ניסיון</button>
+  <div class="st" id="st"></div>
+  <div class="res" id="res"></div>
+  <div class="c t" id="tr"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+try { $('token').value = localStorage.getItem('va_token') || ''; } catch (e) {}
+let ws, micCtx, playCtx, stream, node, playAt = 0, sources = [], running = false;
+
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function iso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function demoSlots() {
+  const out = [], d = new Date();
+  while (out.length < 4) { d.setDate(d.getDate() + 1); if (d.getDay() <= 4) out.push({ date: iso(d), times: ['09:00', '10:00', '12:00', '14:00', '16:00'] }); }
+  return out;
+}
+function stop(msg) {
+  running = false; $('go').textContent = '📞 התחל שיחת ניסיון'; $('go').className = '';
+  try { ws && ws.close(); } catch (e) {}
+  try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { micCtx && micCtx.close(); } catch (e) {}
+  if (msg) $('st').textContent = msg;
+}
+function clearPlayback() { sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = []; playAt = 0; }
+function play(buf) {
+  const i16 = new Int16Array(buf), f = new Float32Array(i16.length);
+  for (let i = 0; i < i16.length; i++) f[i] = i16[i] / 32768;
+  const ab = playCtx.createBuffer(1, f.length, 24000); ab.copyToChannel(f, 0);
+  const s = playCtx.createBufferSource(); s.buffer = ab; s.connect(playCtx.destination);
+  playAt = Math.max(playAt, playCtx.currentTime + 0.05); s.start(playAt); playAt += ab.duration;
+  sources.push(s); s.onended = () => { sources = sources.filter(x => x !== s); };
+}
+const OUT = { scheduled: '✅ נקבעה פגישה', confirmed: '✅ אושרה פגישה', rescheduled: '🔄 הוזזה פגישה', callback: '⏰ לחזור אליו', declined: '✋ לא מעוניין', do_not_call: '⛔ לא להתקשר', voicemail: '📭 תא קולי' };
+function showResult(r) {
+  if (!r || !r.outcome) return;
+  $('res').style.display = 'block';
+  $('res').textContent = (OUT[r.outcome] || r.outcome) + (r.date ? ' · ' + r.date + ' ' + (r.time || '') : '') + (r.callback_when ? ' · ' + r.callback_when : '') + (r.notes ? ' · ' + r.notes : '');
+}
+
+$('go').onclick = async () => {
+  if (running) return stop('השיחה הופסקה');
+  const token = $('token').value.trim(); if (!token) return alert('הזינו קוד גישה');
+  try { localStorage.setItem('va_token', token); } catch (e) {}
+  running = true; $('go').textContent = '⏹️ נתק'; $('go').className = 'stop';
+  $('tr').innerHTML = ''; $('res').style.display = 'none'; $('st').textContent = 'מתחבר...';
+  try {
+    playCtx = playCtx || new AudioContext({ sampleRate: 24000 }); await playCtx.resume();
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    micCtx = new AudioContext({ sampleRate: 16000 });
+    const code = `class P extends AudioWorkletProcessor{constructor(){super();this.b=[]}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++)this.b.push(c[k]);if(this.b.length>=1600){const o=new Int16Array(this.b.length);for(let k=0;k<o.length;k++){const s=Math.max(-1,Math.min(1,this.b[k]));o[k]=s<0?s*32768:s*32767}this.port.postMessage(o.buffer,[o.buffer]);this.b=[]}}return true}}registerProcessor('p',P)`;
+    await micCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([code], { type: 'application/javascript' })));
+    const src = micCtx.createMediaStreamSource(stream); node = new AudioWorkletNode(micCtx, 'p'); src.connect(node);
+
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    const q = new URLSearchParams({ token, name: $('name').value, gender: $('gender').value, mode: $('mode').value, agent: $('agent').value,
+      date: iso(d), time: '10:00', slots: JSON.stringify(demoSlots()) });
+    ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/browser?' + q); ws.binaryType = 'arraybuffer';
+    node.port.onmessage = e => { if (ws.readyState === 1) ws.send(e.data); };
+    ws.onmessage = e => {
+      if (typeof e.data !== 'string') return play(e.data);
+      const m = JSON.parse(e.data);
+      if (m.type === 'ready') $('st').textContent = '🟢 מחובר (' + m.model + ') — דברו בחופשיות';
+      else if (m.type === 'clear') clearPlayback();
+      else if (m.type === 'transcript') $('tr').innerHTML = m.transcript.map(t => `<div class="b ${t.role}">${t.text.replace(/</g, '&lt;')}</div>`).join('');
+      else if (m.type === 'result') showResult(m.result);
+      else if (m.type === 'hangup') { showResult(m.result); setTimeout(() => stop('השיחה הסתיימה ✓'), Math.max(0, (playAt - playCtx.currentTime) * 1000) + 300); }
+      else if (m.type === 'error') stop('שגיאה: ' + m.error);
+    };
+    ws.onclose = ev => { if (running) stop(ev.code === 1006 ? 'החיבור נכשל — בדקו את קוד הגישה' : 'החיבור נסגר'); };
+  } catch (e) { stop('שגיאה: ' + e.message); }
+};
+</script>
+</body>
+</html>

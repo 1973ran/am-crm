@@ -1,0 +1,19 @@
+{
+  "name": "ran-voice-agent",
+  "version": "1.0.0",
+  "description": "Hebrew voice agent: Gemini Live + Twilio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^3.6.1",
+    "twilio": "^6.3.1",
+    "ws": "^8.23.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "private": true
+}
