@@ -222,7 +222,10 @@ async function startSession({ ctx, record, transport, onUpdate, onProgress }) {
   const model = conn.model;
 
   // kick off: the model speaks first
-  session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: '[השיחה התחברה — הלקוח ענה. פתחי עכשיו בברכה.]' }] }], turnComplete: true });
+  // Use the realtime channel for the kick-off text: newer Live models ignore audio after a client_content turn.
+  const kick = '[השיחה התחברה — הלקוח ענה. פתחי עכשיו בברכה.]';
+  try { session.sendRealtimeInput({ text: kick }); }
+  catch (e) { session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: kick }] }], turnComplete: true }); }
 
   return {
     model,

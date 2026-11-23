@@ -41,6 +41,7 @@
   <button id="go">📞 התחל שיחת ניסיון</button>
   <div class="st" id="st"></div>
   <div style="height:8px;background:#15302d;border-radius:4px;overflow:hidden" title="עוצמת המיקרופון"><div id="lv" style="height:100%;width:0;background:#10b981;transition:width .1s"></div></div>
+  <div class="st" id="dg" style="font-size:12px;direction:rtl"></div>
   <div class="st" style="font-size:12px">🎤 הפס הירוק זז כשאתם מדברים = המיקרופון קולט</div>
   <div class="res" id="res"></div>
   <div class="c t" id="tr"></div>
@@ -118,7 +119,8 @@ this.port.postMessage({pcm:o.buffer,level:Math.sqrt(this.e/Math.max(1,this.n))},
     ws.onmessage = e => {
       if (typeof e.data !== 'string') return play(e.data);
       const m = JSON.parse(e.data);
-      if (m.type === 'status') $('st').textContent = '⏳ ' + m.text;
+      if (m.type === 'diag') $('dg').textContent = `אבחון: השרת קיבל ${m.sec} שניות קול מהמיקרופון · Gemini זיהה ${m.heard} משפטים שלך · מודל: ${m.model}`;
+      else if (m.type === 'status') $('st').textContent = '⏳ ' + m.text;
       else if (m.type === 'ready') $('st').textContent = '🟢 מחובר (' + m.model + ') — דברו בחופשיות';
       else if (m.type === 'clear') clearPlayback();
       else if (m.type === 'transcript') $('tr').innerHTML = m.transcript.map(t => `<div class="b ${t.role}">${t.text.replace(/</g, '&lt;')}</div>`).join('');

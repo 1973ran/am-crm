@@ -244,7 +244,13 @@ async function browserStream(ws, q) {
     if (sig !== lastSig && ws.readyState === 1) ws.send(JSON.stringify({ type: 'transcript', transcript: r.transcript }));
     lastSig = sig;
   }, 700);
-  ws.on('message', (data, isBinary) => { if (isBinary) agent.sendAudio(Buffer.from(data)); });
+  let inBytes = 0;
+  const diag = setInterval(() => {
+    if (ws.readyState !== 1) return;
+    ws.send(JSON.stringify({ type: 'diag', sec: +(inBytes / 32000).toFixed(1), heard: r.transcript.filter(t => t.role === 'client').length, model: agent.model }));
+  }, 2000);
+  ws.on('message', (data, isBinary) => { if (isBinary) { inBytes += data.length; agent.sendAudio(Buffer.from(data)); } });
+  ws.on('close', () => clearInterval(diag));
   ws.on('close', () => { clearInterval(tick); agent.close(); });
 }
 
