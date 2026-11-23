@@ -233,7 +233,7 @@ async function browserStream(ws, q) {
   const transport = {
     play: pcm => ws.readyState === 1 && ws.send(pcm),
     clear: () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'clear' })),
-    hangup: () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'hangup', result: r }))
+    hangup: () => ws.readyState === 1 && ws.send(JSON.stringify(r.error && !r.outcome ? { type: 'error', error: r.error } : { type: 'hangup', result: r }))
   };
   let agent;
   try { agent = await startSession({ ctx, record: r, transport, onUpdate: () => ws.send(JSON.stringify({ type: 'result', result: r })) }); }
