@@ -106,7 +106,8 @@ $('go').onclick = async () => {
     ws.onmessage = e => {
       if (typeof e.data !== 'string') return play(e.data);
       const m = JSON.parse(e.data);
-      if (m.type === 'ready') $('st').textContent = '🟢 מחובר (' + m.model + ') — דברו בחופשיות';
+      if (m.type === 'status') $('st').textContent = '⏳ ' + m.text;
+      else if (m.type === 'ready') $('st').textContent = '🟢 מחובר (' + m.model + ') — דברו בחופשיות';
       else if (m.type === 'clear') clearPlayback();
       else if (m.type === 'transcript') $('tr').innerHTML = m.transcript.map(t => `<div class="b ${t.role}">${t.text.replace(/</g, '&lt;')}</div>`).join('');
       else if (m.type === 'result') showResult(m.result);

@@ -236,7 +236,7 @@ async function browserStream(ws, q) {
     hangup: () => ws.readyState === 1 && ws.send(JSON.stringify(r.error && !r.outcome ? { type: 'error', error: r.error } : { type: 'hangup', result: r }))
   };
   let agent;
-  try { agent = await startSession({ ctx, record: r, transport, onUpdate: () => ws.send(JSON.stringify({ type: 'result', result: r })) }); }
+  try { agent = await startSession({ ctx, record: r, transport, onUpdate: () => ws.send(JSON.stringify({ type: 'result', result: r })), onProgress: t => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'status', text: t })) }); }
   catch (e) { ws.send(JSON.stringify({ type: 'error', error: e.message })); return ws.close(); }
   ws.send(JSON.stringify({ type: 'ready', model: agent.model }));
   const tick = setInterval(() => {

@@ -34,18 +34,19 @@ function listModels() {
 function pickModel() { return working ? Promise.resolve(working.model) : listModels().then(n => n[0]); }
 
 /** Connect to the first (model, apiVersion) that completes setup. Resolves with { session, model }. */
-async function connectLive(config, handlers) {
+async function connectLive(config, handlers, onProgress) {
   const names = await listModels();
   const combos = [];
   if (working) combos.push(working);
-  for (const model of names.slice(0, 6)) for (const apiVersion of ['v1beta', 'v1alpha'])
+  for (const model of names.slice(0, 4)) for (const apiVersion of ['v1beta', 'v1alpha'])
     if (!working || working.model !== model || working.apiVersion !== apiVersion) combos.push({ model, apiVersion });
   const failures = [];
   for (const combo of combos) {
     let ready = false, session;
+    onProgress && onProgress('מנסה ' + combo.model + ' (' + combo.apiVersion + ')...');
     try {
       session = await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('timeout')), 12000);
+        const timer = setTimeout(() => reject(new Error('timeout')), 8000);
         let sess;
         client(combo.apiVersion).live.connect({
           model: combo.model, config,
@@ -153,7 +154,7 @@ const TOOLS = [{
  * transport: { play(pcm24kBuffer), clear(), hangup() }  — hangup must wait for queued audio to finish.
  * returns { sendAudio(pcm16kBuffer), close() }
  */
-async function startSession({ ctx, record, transport, onUpdate }) {
+async function startSession({ ctx, record, transport, onUpdate, onProgress }) {
   const slotOk = (date, time) => !(ctx.slots || []).length || (ctx.slots || []).some(d => d.date === date && d.times.includes(time));
   let closed = false, hangupRequested = false, lastRole = null;
   const say = (role, text) => {
@@ -216,7 +217,7 @@ async function startSession({ ctx, record, transport, onUpdate }) {
       },
       onerror: e => { console.error('[agent] gemini error', e && e.message); record.error = 'gemini: ' + (e && e.message); },
       onclose: e => { if (!closed) { console.log('[agent] gemini closed', e && e.reason); record.error = record.error || (e && e.reason) || ''; transport.hangup(); } }
-  });
+  }, onProgress);
   session = conn.session;
   const model = conn.model;
 
