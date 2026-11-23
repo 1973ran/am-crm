@@ -425,6 +425,7 @@ select.form-input{cursor:pointer;}
             <button class="btn" id="cal-month-btn" onclick="setCalView('month')">חודש</button>
             <button class="btn" id="cal-list-btn" onclick="setCalView('list')">רשימה</button>
             <button class="btn btn-p" onclick="openMeetingModal()">+ פגישה</button>
+            <button class="btn" onclick="window.rmVoice&&rmVoice.open('confirm')">🎧 סוכנת קולית</button>
           </div>
         </div>
         <div id="calendar-view"></div>
@@ -709,6 +710,7 @@ function showProfile(id) {
           <div class="act-btn" onclick="window.open('tel:${c.phone}')"><div class="act-ic" style="background:rgba(16,185,129,0.12)">📞</div><span class="act-l">התקשר</span></div>
           <div class="act-btn" onclick="window.open('https://wa.me/972${(c.phone||'').replace(/[^0-9]/g,'').slice(1)}')"><div class="act-ic" style="background:rgba(16,185,129,0.12)">💬</div><span class="act-l">WhatsApp</span></div>
           <div class="act-btn" onclick="openEmailModal(${c.id})"><div class="act-ic" style="background:rgba(20,184,166,0.12)">✉️</div><span class="act-l">מייל</span></div>
+          <div class="act-btn" onclick="window.rmVoice&&rmVoice.callClient(${c.id})"><div class="act-ic" style="background:rgba(239,68,68,0.12)">🎧</div><span class="act-l">סוכנת תקבע</span></div>
           <div class="act-btn" onclick="openMeetingModalFor(${c.id})"><div class="act-ic" style="background:rgba(245,158,11,0.12)">📅</div><span class="act-l">פגישה</span></div>
         </div>
       </div>
@@ -1115,7 +1117,7 @@ function renderMeetingsList(list){
     ${sorted.map(m => {
       const client = clients.find(c => c.id == m.clientId);
       return `<tr>
-        <td><strong style="color:var(--txt)">${client ? client.name : '—'}</strong></td>
+        <td><strong style="color:var(--txt)">${client ? client.name : '—'}</strong>${m.confirmed ? ' <span class="pill pg">✓ אושר</span>' : ''}</td>
         <td>${m.subject || '—'}</td>
         <td>${m.date || '—'}</td>
         <td>${m.time || '—'}</td>
@@ -1125,6 +1127,7 @@ function renderMeetingsList(list){
           ${m.googleEventId
             ? `<span class="pill pg">✓ מסונכרן</span>`
             : `<button class="btn" style="padding:3px 8px;font-size:11px" onclick="pushMeetingToGoogle(${m.id})">📤 סנכרן</button>`}
+          ${m.confirmed ? '' : `<button class="btn" style="padding:3px 8px;font-size:11px" onclick="window.rmVoice&&rmVoice.confirmMeeting(${m.id})">🎧 אשר בטלפון</button>`}
           <button class="btn btn-r" style="padding:3px 8px;font-size:11px" onclick="deleteMeeting(${m.id})">✕</button>
         </td>
       </tr>`;
@@ -3016,3 +3019,4 @@ input,select,textarea{font-size:16px !important}
 </html>
 
 <script src="ai.js?v=2" defer></script>
+<script src="voice-agent.js?v=1" defer></script>
