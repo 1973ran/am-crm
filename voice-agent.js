@@ -148,10 +148,9 @@
     };
     function tryCreate(b) { return api('/convai/agents/create', { method: 'POST', body: b }); }
     return tryCreate(body).catch(function (e) {
-      // fallback: older schemas / models — drop optional parts and retry once
+      // fallback: drop optional tools and retry once (keep v3 — Flash models don't speak Hebrew)
       delete body.conversation_config.agent.prompt.built_in_tools;
-      body.conversation_config.tts = c.voiceId ? { voice_id: c.voiceId, model_id: 'eleven_flash_v2_5' } : { model_id: 'eleven_flash_v2_5' };
-      return tryCreate(body).catch(function () { throw e; });
+      return tryCreate(body).catch(function () { throw new Error(e.message + ' — אפשר ליצור את הסוכנת ידנית בדשבורד (שפה: עברית, מודל קול: Eleven v3 / v4) עם "העתק פרומפט"'); });
     }).then(function (j) { var cc = cfg(); cc.agentId = j.agent_id; setCfg(cc); return j.agent_id; });
   }
 
@@ -381,7 +380,7 @@
       '<div class="row"><div>' + f('hours', 'שעות פגישות', '09:00-18:00', 1) + '</div><div>' + f('slotMin', 'אורך פגישה (דק׳)', '60', 1) + '</div></div>' +
       f('days', 'ימי פגישות (0=ראשון ... 4=חמישי)', '0,1,2,3,4', 1) +
       f('location', 'מיקום ברירת מחדל', 'במשרד או בזום') +
-      f('voiceId', 'Voice ID (אופציונלי — קול עברי מספריית הקולות)', 'ריק = ברירת מחדל', 1) +
+      f('voiceId', 'Voice ID (אופציונלי — קול עברי מספריית הקולות; מודל הקול חייב להיות Eleven v3 או v4)', 'ריק = ברירת מחדל', 1) +
       '<div class="row"><button class="btn2" data-a="create">✨ צור את הסוכנת אוטומטית</button><button class="btn2 g" data-a="copyPrompt">📋 העתק פרומפט</button></div>' +
       f('agentId', 'Agent ID (נמלא אוטומטית, או הדביקו מהדשבורד)', 'agent_...', 1) +
       '<div class="bx"><b>שלב 3 — מספר טלפון</b><br>ב-ElevenLabs: Agents → Phone Numbers → Import. <br>• <b>Twilio</b> — מהיר להתחלה. <br>• <b>SIP Trunk</b> — מומלץ לישראל: מספר ישראלי (03/072) מספק כמו 019 / Voicenter / Cellcom Business, כך שהלקוח רואה מספר מקומי ועונה יותר.<br>שייכו את המספר לסוכנת והעתיקו את ה-Phone Number ID.</div>' +
