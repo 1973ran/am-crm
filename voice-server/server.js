@@ -21,7 +21,7 @@ if (!API_TOKEN) console.warn('⚠️  API_TOKEN is missing — the API is locked
 
 let twilio = null;
 function tw() {
-  if (!twilio && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  if (!twilio && /^AC\w{32}$/.test(process.env.TWILIO_ACCOUNT_SID || '') && process.env.TWILIO_AUTH_TOKEN) twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
   return twilio;
 }
 

@@ -3,7 +3,7 @@ services:
     name: ran-voice-agent
     runtime: node
     rootDir: voice-server
-    plan: starter
+    plan: free
     region: frankfurt
     buildCommand: npm ci
     startCommand: node server.js
