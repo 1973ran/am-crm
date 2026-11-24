@@ -87,7 +87,7 @@ function todayIL() {
 
 function buildPrompt(ctx) {
   const s = ctx.settings || {}, c = ctx.client || {}, m = ctx.meeting || {};
-  const agent = s.agentName || 'נועה', business = s.business || 'רן פיננסים', owner = s.owner || 'רן';
+  const agent = s.agentName || 'שושנה', business = s.business || 'רן פיננסים', owner = s.owner || 'רן';
   const first = (c.name || '').trim().split(/\s+/)[0] || '';
   const gender = c.gender === 'male' ? 'זכר — פני אליו בלשון זכר' : c.gender === 'female' ? 'נקבה — פני אליה בלשון נקבה'
     : 'לא ידוע. הסיקי מהשם הפרטי ומהאופן שבו הלקוח מדבר על עצמו ("אני יכול" / "אני יכולה"). עד שברור — נסחי בלשון ניטרלית.';

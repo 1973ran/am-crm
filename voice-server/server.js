@@ -225,7 +225,7 @@ async function browserStream(ws, q) {
   const ctx = {
     mode: q.get('mode') === 'confirm' ? 'confirm' : 'schedule',
     client: { name: q.get('name') || 'רן', gender: q.get('gender') || '' },
-    settings: { agentName: q.get('agent') || 'נועה', business: q.get('business') || 'רן פיננסים', owner: q.get('owner') || 'רן' },
+    settings: { agentName: q.get('agent') || 'שושנה', business: q.get('business') || 'רן פיננסים', owner: q.get('owner') || 'רן' },
     meeting: q.get('mode') === 'confirm' ? { date: q.get('date') || '', time: q.get('time') || '10:00', subject: 'סקירה שנתית' } : {},
     slots: JSON.parse(q.get('slots') || '[]')
   };

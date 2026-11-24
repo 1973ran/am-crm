@@ -9,7 +9,7 @@
   var CFG_LS = 'rm_voice_cfg2', CALLS_LS = 'crm_calls';
   var DEF = {
     server: '', token: '',
-    business: 'רן פיננסים', agentName: 'נועה', owner: 'רן',
+    business: 'רן פיננסים', agentName: 'שושנה', owner: 'רן',
     hours: '09:00-18:00', days: '0,1,2,3,4', slotMin: 60, location: 'במשרד או בזום — לבחירת הלקוח'
   };
 
@@ -283,7 +283,7 @@
       f('token', 'קוד גישה (API_TOKEN)', '', 1, 'password') +
       '<div class="row"><button class="btn2 g" data-a="check">🔌 בדוק חיבור</button><button class="btn2 g" data-a="voiceTest">🎙️ דברו איתה בדפדפן</button></div>' +
       '<div class="bx"><b>פרטי הסוכנת והיומן</b></div>' +
-      '<div class="row"><div>' + f('agentName', 'שם הנציגה', 'נועה') + '</div><div>' + f('business', 'שם העסק', 'רן פיננסים') + '</div><div>' + f('owner', 'שם הסוכן', 'רן') + '</div></div>' +
+      '<div class="row"><div>' + f('agentName', 'שם הנציגה', 'שושנה') + '</div><div>' + f('business', 'שם העסק', 'רן פיננסים') + '</div><div>' + f('owner', 'שם הסוכן', 'רן') + '</div></div>' +
       '<div class="row"><div>' + f('hours', 'שעות פגישות', '09:00-18:00', 1) + '</div><div>' + f('slotMin', 'אורך פגישה (דק׳)', '60', 1) + '</div></div>' +
       f('days', 'ימי פגישות (0=ראשון ... 4=חמישי)', '0,1,2,3,4', 1) +
       f('location', 'אופן הפגישה', 'במשרד או בזום') +
