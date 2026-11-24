@@ -38,7 +38,13 @@
       <div><label>שם הנציגה</label><input id="agent" value="שושנה"></div>
     </div>
   </div>
-  <button id="go">📞 התחל שיחת ניסיון</button>
+  <button id="go">🎙️ שיחת ניסיון דרך המיקרופון</button>
+  <div class="c">
+    <label>📲 או: שושנה תתקשר לטלפון שלך (שיחה אמיתית דרך Twilio)</label>
+    <div class="row"><div><input id="phone" placeholder="050-0000000" inputmode="tel" style="direction:ltr"></div>
+    <div style="flex:0 0 auto"><button id="dial" style="padding:10px 16px;font-size:16px">התקשרי אליי</button></div></div>
+    <div class="st" id="dst"></div>
+  </div>
   <div class="st" id="st"></div>
   <div style="height:8px;background:#15302d;border-radius:4px;overflow:hidden" title="עוצמת המיקרופון"><div id="lv" style="height:100%;width:0;background:#10b981;transition:width .1s"></div></div>
   <div class="st" id="dg" style="font-size:12px;direction:rtl"></div>
@@ -59,7 +65,7 @@ function demoSlots() {
   return out;
 }
 function stop(msg) {
-  running = false; $('go').textContent = '📞 התחל שיחת ניסיון'; $('go').className = '';
+  running = false; $('go').textContent = '🎙️ שיחת ניסיון דרך המיקרופון'; $('go').className = '';
   try { ws && ws.close(); } catch (e) {}
   try { stream && stream.getTracks().forEach(t => t.stop()); } catch (e) {}
   try { micCtx && micCtx.close(); } catch (e) {}
@@ -75,6 +81,34 @@ function play(buf) {
   playAt = Math.max(playAt, playCtx.currentTime + 0.05); s.start(playAt); playAt += ab.duration;
   sources.push(s); s.onended = () => { sources = sources.filter(x => x !== s); };
 }
+const OUTC = { unknown: '❔ ללא תוצאה', no_answer: '📵 לא נענתה', failed: '⚠️ נכשלה' };
+try { $('phone').value = localStorage.getItem('va_phone') || ''; } catch (e) {}
+$('dial').onclick = async () => {
+  const token = $('token').value.trim(), phone = $('phone').value.trim();
+  if (!token) return alert('הזינו קוד גישה'); if (!phone) return alert('הזינו מספר טלפון');
+  try { localStorage.setItem('va_token', token); localStorage.setItem('va_phone', phone); } catch (e) {}
+  const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+  $('dial').disabled = true; $('dst').textContent = '⏳ מחייג...';
+  const d = new Date(); const slots = demoSlots();
+  try {
+    const r = await fetch('/api/call', { method: 'POST', headers: H, body: JSON.stringify({
+      mode: $('mode').value, client: { name: $('name').value, phone, gender: $('gender').value },
+      meeting: $('mode').value === 'confirm' ? { date: slots[0].date, time: '10:00', subject: 'סקירה שנתית' } : null,
+      settings: { agentName: $('agent').value }, slots }) });
+    const j = await r.json();
+    if (!r.ok) { $('dst').textContent = '❌ ' + (j.error || r.status); $('dial').disabled = false; return; }
+    $('dst').textContent = '📲 הטלפון אמור לצלצל עכשיו — עני!';
+    const poll = async () => {
+      const c = await (await fetch('/api/calls/' + j.id, { headers: H })).json();
+      const st = { calling: '📲 מחייג...', ringing: '🔔 מצלצל...', talking: '🗣️ בשיחה...' }[c.status];
+      if (c.transcript && c.transcript.length) $('tr').innerHTML = c.transcript.map(t => `<div class="b ${t.role}">${t.text.replace(/</g, '&lt;')}</div>`).join('');
+      if (c.status !== 'done') { $('dst').textContent = st || c.status; return setTimeout(poll, 2000); }
+      $('dial').disabled = false;
+      $('dst').textContent = 'השיחה הסתיימה: ' + (OUT[c.outcome] || OUTC[c.outcome] || c.outcome) + (c.date ? ' · ' + c.date + ' ' + (c.time || '') : '') + (c.error ? ' · ' + c.error : '');
+    };
+    setTimeout(poll, 2000);
+  } catch (e) { $('dst').textContent = '❌ ' + e.message; $('dial').disabled = false; }
+};
 const OUT = { scheduled: '✅ נקבעה פגישה', confirmed: '✅ אושרה פגישה', rescheduled: '🔄 הוזזה פגישה', callback: '⏰ לחזור אליו', declined: '✋ לא מעוניין', do_not_call: '⛔ לא להתקשר', voicemail: '📭 תא קולי' };
 function showResult(r) {
   if (!r || !r.outcome) return;
