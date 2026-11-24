@@ -1,3 +1,7 @@
+// trim pasted env values (stray spaces / newlines from copy-paste)
+for (const k of ['GEMINI_API_KEY', 'API_TOKEN', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM', 'PUBLIC_URL', 'GEMINI_MODEL', 'GEMINI_VOICE'])
+  if (process.env[k]) process.env[k] = process.env[k].trim();
+if (process.env.TWILIO_FROM) process.env.TWILIO_FROM = process.env.TWILIO_FROM.replace(/[\s-]/g, '');
 // רן פיננסים — שרת הסוכנת הקולית
 // CRM → POST /api/call → Twilio dials the client → Twilio streams audio over WebSocket (/media)
 // ↔ Gemini Live (native audio, Hebrew) → results available at GET /api/calls/:id for the CRM.
